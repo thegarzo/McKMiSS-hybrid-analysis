@@ -419,9 +419,9 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
             'rap_window':  rap_window,
         }
 
-        print(f"  {cent:8s}%  n_ev={n_ev:6d}  "
-              f"<pT>={mean_pt:.4f} GeV  "
-              f"dN/dy|_{{pT=0}}~{dN_dydpt[0]:.2e}")
+        # print(f"  {cent:8s}%  n_ev={n_ev:6d}  "
+            #   f"<pT>={mean_pt:.4f} GeV  "
+            #   f"dN/dy|_{{pT=0}}~{dN_dydpt[0]:.2e}")
 
     return spectra
 
@@ -655,9 +655,9 @@ def compute_flow(masks, records, irap_sig, irap_ref=None,
             'n_events':    n_ev,
         }
 
-        print(f"  {lab:8s}%  n_ev={n_ev:6d}  "
-              + "  ".join(f"v{n}{{2}}={vn2_int[io]:.4f}±{vn2_int_err[io]:.4f}"
-                          for io, n in enumerate(orders)))
+        # print(f"  {lab:8s}%  n_ev={n_ev:6d}  "
+        #       + "  ".join(f"v{n}{{2}}={vn2_int[io]:.4f}±{vn2_int_err[io]:.4f}"
+        #                   for io, n in enumerate(orders)))
 
     return results
 
@@ -929,12 +929,12 @@ def compute_flow_cumulants(masks, records,
             'n_events':    n_ev,
         }
 
-        print(f"  {lab:8s}%  n={n_ev:5d}  "
-              + "  ".join(
-                  f"v{n}{{2}}={v2_2[io]:.4f}  "
-                  f"v{n}{{2|AB}}={v2_2sub[io]:.4f}  "
-                  f"v{n}{{4}}={v2_4[io]:.4f}"
-                  for io, n in enumerate(orders)))
+        # print(f"  {lab:8s}%  n={n_ev:5d}  "
+        #       + "  ".join(
+        #           f"v{n}{{2}}={v2_2[io]:.4f}  "
+        #           f"v{n}{{2|AB}}={v2_2sub[io]:.4f}  "
+        #           f"v{n}{{4}}={v2_4[io]:.4f}"
+        #           for io, n in enumerate(orders)))
 
     return results
 

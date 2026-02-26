@@ -17,6 +17,8 @@ import matplotlib.cm as cm
 def plot_events_selected(infos, plot_path, records):
     # quick look at the centrality bin definitions
     fig, ax = plt.subplots()
+    ax.set_xscale('log')
+    ax.set_yscale('log')
     ax.hist(records['dNch_deta'], bins=80, color='steelblue', alpha=0.7)
 
     for label, d in infos.items():
