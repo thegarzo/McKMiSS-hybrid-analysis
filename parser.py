@@ -27,6 +27,7 @@ class Parser:
         self.events.clear()
         event_id = 0
 
+        skipped =0
         for entry in os.scandir(self.base_path):
             if not entry.is_dir():
                 continue
@@ -41,18 +42,26 @@ class Parser:
             
             subfolder_path = os.path.join(entry.path, "MUSIC", "outputs")
             is_run_complete= os.path.isdir(subfolder_path)
-            
-            self.events[event_id] = {
-                "campaignID": campaign_id,
-                "clusterID": cluster_id,
-                "jobID": job_id,
-                "UID": unique_id,
-                "ran": is_run_complete,
-                "folder_path": entry.path,
-                "h5_path": self.find_h5_file(entry.path+"/MUSIC")
-            }
-          
-            event_id += 1
+
+            h5_path =self.find_h5_file(entry.path+"/MUSIC")
+
+            if h5_path is None:
+                skipped += 1
+                continue
+            else:
+                
+                self.events[event_id] = {
+                    "campaignID": campaign_id,
+                    "clusterID": cluster_id,
+                    "jobID": job_id,
+                    "UID": unique_id,
+                    "ran": is_run_complete,
+                    "folder_path": entry.path,
+                    "h5_path": h5_path
+                }
+                event_id += 1
+        print("Skipped n = " +str( skipped)+  ' files')
+        print("Catalogued n = " +str(event_id)+  ' files')
     
     def get_event_folder(self, event_id: int):
         """
@@ -90,7 +99,7 @@ class Parser:
         ]
 
         if len(h5_files) == 0:
-            raise FileNotFoundError(f"No .h5 file found in: {folder_path}")
+            return None
         if len(h5_files) > 1:
             raise ValueError(f"Expected exactly one .h5 file, but found {len(h5_files)}: {h5_files}")
 
