@@ -24,7 +24,7 @@ def main():
     output_dir          = sys.argv[2]
     EventPaths = ps.Parser(base_path)
     files   = EventPaths.get_all_h5_paths()
-    print(files)
+    # print(files)
 
     sanity_dir= output_dir+"/SanityPlots"
     

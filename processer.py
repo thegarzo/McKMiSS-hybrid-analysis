@@ -744,7 +744,7 @@ def compute_flow_cumulants(masks, records,
             rap_cuts = f['metadata'].attrs['rap_cuts']
             print("rap_cuts in FILE:")
             for i, cut in enumerate(rap_cuts):
-                print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
+                # print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
             NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
             NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
             
