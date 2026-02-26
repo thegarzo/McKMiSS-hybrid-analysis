@@ -155,7 +155,7 @@ def compute_summary(events):
             'Q2n_imag': Q2n_imag,
             'pQn_real': pQn_real,
             'pQn_imag': pQn_imag,
-            'N_eta':    N_eta,    # shape (n_ev, N_ETA) — new
+            'N_eta':    N_eta,    # shape (n_ev, N_ETA) 
         }
     return out
 

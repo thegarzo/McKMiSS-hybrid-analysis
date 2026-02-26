@@ -51,7 +51,7 @@ import numpy as np
 import sys
 import os
 
-import parser as pa
+import binary_parser as pa
 import analyser as an   
 
 def main():

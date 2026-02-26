@@ -14,7 +14,7 @@ import matplotlib.cm as cm
 
 ###################################################### EVENTS ###########################################################
 
-def plot_events_selected(infos, records):
+def plot_events_selected(infos, plot_path, records):
     # quick look at the centrality bin definitions
     fig, ax = plt.subplots()
     ax.hist(records['dNch_deta'], bins=80, color='steelblue', alpha=0.7)
@@ -31,12 +31,12 @@ def plot_events_selected(infos, records):
                 f"|y| in ({records['rap_window'][0]:.1f}, "
                 f"{records['rap_window'][1]:.1f})")
     plt.tight_layout()
-    plt.savefig('SanityPlots/centrality_definition.pdf')
-    print("Saved centrality_definition.pdf")
+    plt.savefig(plot_path+'/centrality_definition.pdf')
+    print("Saved " + plot_path +"/centrality_definition.pdf")
 
 ###################################################### dNchdeta ###########################################################
 
-def plot_dNch_deta(results):
+def plot_dNch_deta(results, plot_path):
     fig, ax = plt.subplots(figsize=(8, 5))
     colors  = cm.plasma(np.linspace(0.1, 0.9, len(results)))
 
@@ -49,11 +49,11 @@ def plot_dNch_deta(results):
     ax.set_title('Charged hadron pseudorapidity distribution')
     ax.legend(fontsize=8)
     plt.tight_layout()
-    plt.savefig('SanityPlots/dNch_deta.pdf')
-    print("Saved SanityPlots/dNch_deta.pdf")
+    plt.savefig(plot_path+'/dNch_deta.pdf')
+    print("Saved "+plot_path+"/dNch_deta.pdf")
 
 ###################################################### PT ###########################################################
-def plot_pt_spectra(spectra, species):
+def plot_pt_spectra(spectra, plot_path, species):
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     colors = cm.plasma(np.linspace(0.1, 0.9, len(spectra)))
@@ -87,11 +87,11 @@ def plot_pt_spectra(spectra, species):
     axes[1].legend(fontsize=7)
 
     plt.tight_layout()
-    plt.savefig('SanityPlots/spectra_'+species+ '.pdf')
-    print("Saved spectra_"+species+".pdf")
+    plt.savefig(plot_path+'/spectra_'+species+ '.pdf')
+    print("Saved " +plot_path+"/spectra_"+species+".pdf")
 
 ###################################################### FLOW ###########################################################
-def plot_flows(flow):
+def plot_flows(flow, plot_path):
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     colors = cm.plasma(np.linspace(0.1, 0.9, len(flow)))
 
@@ -142,5 +142,5 @@ def plot_flows(flow):
     axes[1].set_title(r'$v_2\{2\}(p_T)$ by centrality')
     axes[1].legend(fontsize=7)
     plt.tight_layout()
-    plt.savefig('SanityPlots/flow.pdf')
-    print("Saved SanityPlots/flow.pdf")
+    plt.savefig(plot_path+'/flow.pdf')
+    print("Saved " + plot_path+"/flow.pdf")
