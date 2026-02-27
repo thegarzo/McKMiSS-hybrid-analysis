@@ -93,7 +93,9 @@ def compute_summary(events):
                 eta    = np.where(safe < np.inf,
                                   0.5 * np.log((p_abs + pz) / safe),
                                   np.nan)
-                in_range = (eta >= ETA_BINS[0]) and (eta < ETA_BINS[-1])  (p_t >= ALICE_TRACK_SEL[0]) and ( pt< ALICE_TRACK_SEL[-1]) and np.isfinite(eta) 
+                print(eta.shape , p_t.shape) 
+                print(ALICE_TRACK_SEL[0] , ALICE_TRACK_SEL[-1]) 
+                in_range = (eta >= ETA_BINS[0]) & (eta < ETA_BINS[-1]) & (p_t >= ALICE_TRACK_SEL[0]) & ( p_t< ALICE_TRACK_SEL[-1]) & np.isfinite(eta) 
                 if np.any(in_range):
                     counts, _ = np.histogram(eta[in_range], bins=ETA_BINS)
                     N_eta[iev] += counts.astype(np.int32)
