@@ -5,15 +5,21 @@ import numpy as np
 
 def get_kinematics(ev):
     px, py, pz, E = ev['px'], ev['py'], ev['pz'], ev['E']
+
     pt  = np.sqrt(px**2 + py**2)
+    pv  = np.sqrt(px**2 + py**2 + pz**2)
     phi = np.arctan2(py, px)
     # Protect against log(0) or log(negative) for massless/near-massless
     # particles going exactly along the beam axis.
     # Replace (E - pz) <= 0 with infinity so the ratio -> 0 and rap -> -inf,
     # then NaN-mask those entries.
-    safe = np.where(E - pz > 0, (E + pz) / (E - pz), np.inf)
-    rap  = np.where(safe > 0, 0.5 * np.log(safe), np.nan)
-    return pt, phi, rap
+    # safe = np.where(E - pz > 0, (E + pz) / (E - pz), np.inf)
+    # rap  = np.where(safe > 0, 0.5 * np.log(safe), np.nan)
+    
+    safe = np.where(pv - pz > 0, (pv + pz) / (pv - pz), np.inf)
+    psrap  = np.where(safe > 0, 0.5 * np.log(safe), np.nan)
+
+    return pt, phi, psrap
 
 
 def select_species(ev, pdg_spec, rap_cut):

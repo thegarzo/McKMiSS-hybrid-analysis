@@ -88,11 +88,12 @@ def compute_summary(events):
             if len(pz) > 0:
                 # pseudorapidity: eta = -ln(tan(theta/2)) = 0.5*ln((|p|+pz)/(|p|-pz))
                 p_abs  = np.sqrt(px**2 + py**2 + pz**2)
+                p_t  = np.sqrt(px**2 + py**2 + pz**2)
                 safe   = np.where(p_abs - pz > 0, p_abs - pz, np.inf)
                 eta    = np.where(safe < np.inf,
                                   0.5 * np.log((p_abs + pz) / safe),
                                   np.nan)
-                in_range = (eta >= ETA_BINS[0]) & (eta < ETA_BINS[-1]) & np.isfinite(eta)
+                in_range = (eta >= ETA_BINS[0]) and (eta < ETA_BINS[-1])  (p_t >= ALICE_TRACK_SEL[0]) and ( pt< ALICE_TRACK_SEL[-1]) and np.isfinite(eta) 
                 if np.any(in_range):
                     counts, _ = np.histogram(eta[in_range], bins=ETA_BINS)
                     N_eta[iev] += counts.astype(np.int32)
@@ -136,7 +137,7 @@ def compute_summary(events):
 
                     for io, n in enumerate(ORDERS):
                         Qn  = np.sum(np.exp( 1j * n * phi_b))
-                        Q2n = np.sum(np.exp(2j * n * phi_b))
+                        Q2n = np.sum(np.exp( 2j * n * phi_b))
                         pQn = np.sum(pt_b * np.exp(1j * n * phi_b))
 
                         Qn_real [iev, RCUT, ib, io] = Qn.real

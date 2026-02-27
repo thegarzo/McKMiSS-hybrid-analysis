@@ -25,6 +25,8 @@ PT_BINS_FLOW = np.logspace(np.log10(PT_MIN_FLOW), np.log10(PT_MAX_FLOW),
                            N_PT_FLOW + 1)
 PT_CENTS_FLOW = np.sqrt(PT_BINS_FLOW[:-1] * PT_BINS_FLOW[1:])
 
+ALICE_TRACK_SEL = [PT_MIN,50.]
+
 # ── eta bins for dNch/deta vs eta ─────────────────────────────────────
 ETA_BINS  = np.linspace(-5.0, 5.0, 51)   # 120 bins, 0.5 wide
 ETA_CENTS = 0.5 * (ETA_BINS[:-1] + ETA_BINS[1:])
@@ -70,7 +72,7 @@ BARYONS={
 }
 
 # Rapidity window for all observables.
-# |y| < 1.0 covers midrapidity and is standard for LHC analyses.
+# |eta| < 1.0 covers midrapidity and is standard for LHC analyses.
 # But we need to also consider other rapidity windows for analysis.
 RAP_CUTS  ={
     0: [-0.8,0.8], # ALICE midrapidity
@@ -80,6 +82,7 @@ RAP_CUTS  ={
     4: [-0.8,-0.4], # ALICE Flow Sub-event A
     5: [0.4,0.8], # ALICE Flow Sub-event B
 } 
+
 
 RAP_CUTS_ASSIGMENTS  ={
     "ALICE midrapidity": 0,
