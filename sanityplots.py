@@ -43,8 +43,10 @@ def plot_dNch_deta(results, plot_path):
     colors  = cm.plasma(np.linspace(0.1, 0.9, len(results)))
 
     for (lab, res), color in zip(results.items(), colors):
+        ax.fill_between(res['eta_cents'], res['dNch_deta']-res['dNch_deta_err'], res['dNch_deta']+res['dNch_deta_err'], color=color, alpha=0.4)
         ax.plot(res['eta_cents'], res['dNch_deta'],
                 '-', color=color, label=f'{lab}%')
+        
 
     ax.set_xlabel(r'$\eta$')
     ax.set_ylabel(r'$dN_{ch}/d\eta$')
@@ -53,6 +55,78 @@ def plot_dNch_deta(results, plot_path):
     plt.tight_layout()
     plt.savefig(plot_path+'/dNch_deta.pdf')
     print("Saved "+plot_path+"/dNch_deta.pdf")
+
+###################################################### dNchdeta (rap_cut) ###########################################################
+def plot_dNch_eta_cent(spectra, plot_path):
+    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+
+    colors = 'k'
+    species="charged_hadrons"
+    label=None
+
+    for label in spectra[species].keys():
+        # pt  = sp['pt_cents']
+        dN  = spectra[species][label]['dN_deta']
+        err = spectra[species][label]['dN_deta_err']
+        low, high = map(float, label.split('-'))
+        center = (low + high) / 2
+        XERR=[[center-low],[high-center]]
+        
+        ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
+                        fmt='o:', ms=3, color=colors)
+
+    ax.set_yscale('log')
+    # axes[0].set_xscale('log')
+
+    ax.set_xlabel(r'Centrality')
+    ax.set_ylabel(r'$dN_{ch}/d\eta$')
+    ax.set_title(r'spectra by centrality')
+    ax.legend(fontsize=7)
+
+    plt.tight_layout()
+    plt.savefig(plot_path+'/dNch_deta_cent.pdf')
+    print("Saved "+plot_path+"/dNch_deta_cent.pdf")
+
+###################################################### <pt> (rap_cut) ###########################################################
+def plot_avg_pt_cent(spectra, plot_path):
+    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+    
+    print(spectra.keys())
+    colors = cm.plasma(np.linspace(0.1, 0.9, 4))
+    particles=["charged_hadrons",'pi_plus', 'kaon_plus', 'proton']
+    label=None
+
+    for iS, species in enumerate(particles):
+        tag=None
+        for label in spectra[species].keys():
+            # pt  = sp['pt_cents']
+            dN  = spectra[species][label]['mean_pt']
+            err = spectra[species][label]['mean_pt_err']
+            low, high = map(float, label.split('-'))
+            center = (low + high) / 2
+            XERR=[[center-low],[high-center]]
+            
+            if tag is None:
+                ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
+                            fmt='o:', ms=3, color=colors[iS], label=SPECIES_NAMES[species])
+                tag=1
+            else:
+                ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
+                            fmt='o:', ms=3, color=colors[iS])
+
+    ax.set_yscale('log')
+    # axes[0].set_xscale('log')
+
+    ax.set_xlabel(r'Centrality')
+    ax.set_ylabel(r'$dN_{ch}/d\eta$')
+    ax.set_title(r'spectra by centrality')
+    ax.legend(fontsize=7)
+
+    plt.tight_layout()
+    plt.savefig(plot_path+'/mean_pt_cent.pdf')
+    print("Saved "+plot_path+"/mean_pt_cent.pdf")
+
+
 
 ###################################################### PT ###########################################################
 def plot_pt_spectra(spectra, plot_path, species):
@@ -78,14 +152,14 @@ def plot_pt_spectra(spectra, plot_path, species):
     # axes[0].set_xscale('log')
     axes[0].set_xlabel(r'$p_T$ (GeV)')
     axes[0].set_ylabel(r'$\frac{1}{2\pi p_T}\frac{dN}{dy\,dp_T}$ (GeV$^{-2}$)')
-    axes[0].set_title(r'$\pi^+$ spectra by centrality')
+    axes[0].set_title(r'spectra by centrality')
     axes[0].legend(fontsize=7)
 
     axes[1].set_yscale('log')
     # axes[1].set_xscale('log')
     axes[1].set_xlabel(r'$p_T$ (GeV)')
     axes[1].set_ylabel('Normalised yield')
-    axes[1].set_title(r'$\pi^+$ shape comparison')
+    axes[1].set_title(r' shape comparison')
     axes[1].legend(fontsize=7)
 
     plt.tight_layout()

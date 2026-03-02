@@ -13,9 +13,8 @@ def get_kinematics(ev):
     # particles going exactly along the beam axis.
     # Replace (E - pz) <= 0 with infinity so the ratio -> 0 and rap -> -inf,
     # then NaN-mask those entries.
-    # safe = np.where(E - pz > 0, (E + pz) / (E - pz), np.inf)
-    # rap  = np.where(safe > 0, 0.5 * np.log(safe), np.nan)
-    
+
+    # here we do the selection with pseudo-rapidity, naturally
     safe = np.where(pv - pz > 0, (pv + pz) / (pv - pz), np.inf)
     psrap  = np.where(safe > 0, 0.5 * np.log(safe), np.nan)
 

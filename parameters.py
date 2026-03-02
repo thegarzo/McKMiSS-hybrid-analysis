@@ -53,6 +53,20 @@ SPECIES = {
     'charged_hadrons': [211, -211, 321, -321, 2212, -2212], # all charged hadrons
 }
 
+SPECIES_NAMES = {
+    # 'photon':     22,
+    'pi_0':   r'\pi^0',
+    'pi_plus':   r'\pi^+',
+    'pi_minus':   r'\pi^-',
+    'kaon_plus':  r'K^+',
+    'kaon_minus':  r'K^-',
+    'proton':    r'p',
+    'anti-proton':   r'\bar{p}',
+    'neutron':     r'n',
+    'anti-neutron': r'\bar{n}',
+    'charged_hadrons': r'Charged', # all charged hadrons
+}
+
 # Fancy Baryons
 BARYONS={
     'Lambda': 3122,

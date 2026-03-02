@@ -237,13 +237,68 @@ def make_centrality_masks(records, bins_percentile):
 
     return masks, info
 
+# def compute_dNch_deta(masks, records, species='charged_hadrons'):
+#     """
+#     Compute dNch/deta vs eta per centrality class.
+#     """
+#     files    = records['filenames']
+#     labels   = list(masks.keys())
+#     acc_Neta = {lab: None for lab in labels}
+#     n_events = {lab: 0    for lab in labels}
+#     eta_bins = eta_cents = None
+#     offset   = 0
+
+#     for fname in files:
+#         with h5py.File(fname, 'r') as f:
+#             if eta_bins is None:
+#                 eta_bins  = f['metadata'].attrs['eta_bins']
+#                 eta_cents = f['metadata'].attrs['eta_cents']
+
+#             N_eta  = f[f'particles/{species}/N_eta'][:]   # (n_samp, N_ETA)
+#             n_samp = N_eta.shape[0]
+#             file_slice = slice(offset, offset + n_samp)
+
+#             for lab in labels:
+#                 local_mask = masks[lab][file_slice]
+#                 n_sel      = local_mask.sum()
+#                 if n_sel == 0:
+#                     continue
+#                 if acc_Neta[lab] is None:
+#                     acc_Neta[lab] = np.zeros(N_eta.shape[1], dtype=np.float64)
+#                 acc_Neta[lab] += N_eta[local_mask].sum(axis=0)
+#                 n_events[lab] += n_sel
+
+#         offset += n_samp
+
+#     deta    = np.diff(eta_bins)
+#     results = {}
+#     for lab in labels:
+#         n_ev = n_events[lab]
+#         if n_ev == 0:
+#             continue
+#         dNch_deta     = acc_Neta[lab] / (n_ev * deta)
+#         results[lab]  = {
+#             'eta_cents':  eta_cents,
+#             'dNch_deta':  dNch_deta,
+#             'n_events':   n_ev,
+#         }
+
+#     return results
+
 def compute_dNch_deta(masks, records, species='charged_hadrons'):
     """
-    Compute dNch/deta vs eta per centrality class.
+    Compute dNch/deta vs eta per centrality class, with statistical errors.
+    
+    Errors are computed using Poisson statistics:
+    - Error on total count N = sqrt(N)
+    - Error on dNch/deta = sqrt(N_total) / (n_ev * deta)
+    
+    This accounts for the natural statistical fluctuations in particle counts.
     """
     files    = records['filenames']
     labels   = list(masks.keys())
-    acc_Neta = {lab: None for lab in labels}
+    # print('label',labels)
+    acc_Neta = {lab: None for lab in labels}     # sum of N_eta
     n_events = {lab: 0    for lab in labels}
     eta_bins = eta_cents = None
     offset   = 0
@@ -276,14 +331,21 @@ def compute_dNch_deta(masks, records, species='charged_hadrons'):
         n_ev = n_events[lab]
         if n_ev == 0:
             continue
+        # Mean dNch/deta per event
         dNch_deta     = acc_Neta[lab] / (n_ev * deta)
+        # Statistical error using Poisson statistics
+        # sqrt(N_total) / (n_ev * deta) where N_total is the count in each eta bin
+        dNch_deta_err = np.sqrt(acc_Neta[lab]) / (n_ev * deta)
+        
         results[lab]  = {
             'eta_cents':  eta_cents,
             'dNch_deta':  dNch_deta,
+            'dNch_deta_err': dNch_deta_err,
             'n_events':   n_ev,
         }
 
     return results
+
 
 
 def compute_spectra(records,masks, irap, species='pi_plus'):
@@ -325,6 +387,9 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
     acc_N           = {cent: None for cent in centralities}  # sum of N_pt over events
     acc_N2          = {cent: None for cent in centralities}  # sum of N_pt^2 for variance
     acc_sumpt       = {cent: None for cent in centralities}  # sum of sum_pt over events
+    acc_sumpt2      = {cent: None for cent in centralities}  # sum of sum_pt over events
+    acc_Ns          = {cent: None for cent in centralities}  # sum of particles (no pt bins)
+    acc_Ns2         = {cent: None for cent in centralities}  # 
     n_events        = {cent: 0    for cent in centralities}
     pt_bins         = None
     pt_cents        = None
@@ -355,7 +420,9 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
             for cent in centralities:
                 local_mask = masks[cent][file_slice]  # boolean (n_samp,)
+                # remember n_sel is events
                 n_sel      = local_mask.sum()
+                
                 if n_sel == 0:
                     continue
 
@@ -364,13 +431,23 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
                 # accumulate
                 if acc_N[cent] is None:
-                    acc_N    [cent] = np.zeros(N_sel.shape[1], dtype=np.float64)
-                    acc_N2   [cent] = np.zeros(N_sel.shape[1], dtype=np.float64)
-                    acc_sumpt[cent] = np.zeros(N_sel.shape[1], dtype=np.float64)
+                    acc_N    [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
+                    acc_N2   [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
+                    acc_sumpt[cent]     = 0
+                    acc_sumpt2[cent]    = 0
+                    acc_Ns[cent]        = 0
+                    acc_Ns2[cent]       = 0
 
                 acc_N    [cent] += N_sel.sum(axis=0)
-                acc_N2   [cent] += (N_sel.astype(np.float64)**2).sum(axis=0)
-                acc_sumpt[cent] += spt_sel.sum(axis=0)
+                # acc_N2   [cent] += (N_sel.astype(np.float64)**2).sum(axis=0)
+                
+                N_sel_tot=N_sel.sum(axis=1)
+                acc_Ns[cent]+=N_sel_tot.sum()
+                acc_Ns2[cent]+=sum(N_sel_tot*N_sel_tot)
+
+                avg_pt_events=spt_sel.sum(axis=1)/N_sel_tot
+                acc_sumpt[cent] += np.sum(avg_pt_events)
+                acc_sumpt2[cent] += np.sum(avg_pt_events*avg_pt_events)
                 n_events [cent] += n_sel
 
             offset += n_samp
@@ -379,7 +456,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
     dpt      = np.diff(pt_bins)                    # bin widths
     rap_min  = rap_window[0]
     rap_max  = rap_window[1]
-    dy       = rap_max - rap_min                   # rapidity window width
+    deta       = rap_max - rap_min                   # rapidity window width
 
     spectra = {}
     for cent in centralities:
@@ -388,40 +465,42 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
             print(f"  Warning: no events in centrality {cent}%, skipping.")
             continue
 
-        N_total   = acc_N[cent]                     # (n_pt,)
-        N2_total  = acc_N2[cent]
+        N_total   = acc_N[cent]
+        Ns_total  = acc_Ns[cent]                     # (n_pt,)
         spt_total = acc_sumpt[cent]
+        spt2_total= acc_sumpt2[cent]
 
-        # spectrum: (1/2pi pT) dN/dy dpT averaged over events
-        dN_dydpt  = N_total / (n_ev * 2*np.pi * pt_cents * dpt * dy)
-
+        # dNdeta averaged over events
+        dN_deta  = Ns_total / (n_ev * deta)
         # statistical error from Poisson counting:
-        # sigma(dN) = sqrt(N) / (n_ev * 2pi pT dpT dy)
-        dN_err    = np.sqrt(N_total) / (n_ev * 2*np.pi * pt_cents * dpt * dy)
+        # sigma(dN) = sqrt(N) / (n_ev * 2pi pT dpT deta)
+        dN_deta_err    = np.sqrt(Ns_total) / (n_ev * deta)
+
+        # spectrum: (1/2pi pT) dN/deta dpT averaged over events
+        dN_detadpt  = N_total / (n_ev * 2*np.pi * pt_cents * dpt * deta)
+        # statistical error from Poisson counting:
+        # sigma(dN) = sqrt(N) / (n_ev * 2pi pT dpT deta)
+        dN_err    = np.sqrt(N_total) / (n_ev * 2*np.pi * pt_cents * dpt * deta)
 
         # <pT> integrated over all pT bins
-        total_N   = N_total.sum()
-        mean_pt   = spt_total.sum() / total_N if total_N > 0 else np.nan
-
+        mean_pt   = acc_sumpt[cent] / n_ev
+        var_pt    = (acc_sumpt2[cent]-np.power(acc_sumpt[cent],2.)/n_ev) / (n_ev-1.)
+    
         # error on <pT>: standard error of the mean across events
         # approximated from per-bin variance
-        mean_pt_err = np.sqrt(
-            np.sum(acc_N2[cent]) / (n_ev**2)
-        ) / total_N if total_N > 0 else np.nan
+        mean_pt_err = np.sqrt(var_pt) 
 
         spectra[cent] = {
             'pt_cents':    pt_cents,
-            'dN':          dN_dydpt,
+            'dN_deta':          dN_deta,
+            'dN_deta_err':      dN_deta_err,
+            'dN':          dN_detadpt,
             'dN_err':      dN_err,
             'mean_pt':     float(mean_pt),
             'mean_pt_err': float(mean_pt_err),
             'n_events':    n_ev,
             'rap_window':  rap_window,
         }
-
-        # print(f"  {cent:8s}%  n_ev={n_ev:6d}  "
-            #   f"<pT>={mean_pt:.4f} GeV  "
-            #   f"dN/dy|_{{pT=0}}~{dN_dydpt[0]:.2e}")
 
     return spectra
 
@@ -742,14 +821,14 @@ def compute_flow_cumulants(masks, records,
     for fname in files:
         with h5py.File(fname, 'r') as f:
             rap_cuts = f['metadata'].attrs['rap_cuts']
-            print("rap_cuts in FILE:")
+            # print("rap_cuts in FILE:")
             # for i, cut in enumerate(rap_cuts):
                 # print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
             NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
             NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
             
-            print(f"Sub-event A  mean N = {NA.mean():.2f}  max = {NA.max():.0f}")
-            print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
+            # print(f"Sub-event A  mean N = {NA.mean():.2f}  max = {NA.max():.0f}")
+            # print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
 
             if pt_cents is None:
                 pt_cents  = f['metadata'].attrs['pt_cents_flow']

@@ -27,6 +27,9 @@ def main():
     # print(files)
 
     sanity_dir= output_dir+"/SanityPlots"
+    data_dir= output_dir+"/Data"
+    os.makedirs(sanity_dir, exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
     
     #assign selection method
     irap= RAP_CUTS_ASSIGMENTS["ALICE midrapidity"]
@@ -36,7 +39,6 @@ def main():
 
     print(records['dNch_deta'])
     # quick look at the distribution
-    os.makedirs(sanity_dir, exist_ok=True)
 
     # make centrality masks and print info about the bins
     bin_edges=[0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 100]
@@ -59,11 +61,15 @@ def main():
         print(f"Processing pt-spectra for {species} ...")
         spectra[species]=pr.compute_spectra(records, mask, irap, species)
 
+
     ####  PLOT PLOT PLOT PLOT  ####
+    sanity.plot_dNch_eta_cent(spectra,sanity_dir)
+    sanity.plot_avg_pt_cent(spectra,sanity_dir)
     sanity.plot_pt_spectra(spectra,sanity_dir,"charged_hadrons")
     sanity.plot_pt_spectra(spectra,sanity_dir,"pi_plus")
     sanity.plot_pt_spectra(spectra,sanity_dir,"kaon_plus")
     sanity.plot_pt_spectra(spectra,sanity_dir,"proton")
+
     ####  PLOT PLOT PLOT PLOT  ####
 
     ## Flow 
