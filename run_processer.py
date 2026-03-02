@@ -11,6 +11,7 @@ import processer as pr
 import sanityplots as sanity
 
 import matplotlib.cm as cm
+import pickle
 
 
 def main():
@@ -49,6 +50,10 @@ def main():
     ####  PLOT PLOT PLOT PLOT  ####
 
     dnch=pr.compute_dNch_deta(mask, records, species='charged_hadrons')
+    ####  SAVE DICTIONARY  ####
+    with open(data_dir+'/dnch_deta.pkl', 'wb') as f:
+        pickle.dump(dnch, f)
+
     ####  PLOT PLOT PLOT PLOT  ####
     sanity.plot_dNch_deta(dnch,sanity_dir)
     ####  PLOT PLOT PLOT PLOT  ####
@@ -60,7 +65,10 @@ def main():
     for species in SPECIES.keys():
         print(f"Processing pt-spectra for {species} ...")
         spectra[species]=pr.compute_spectra(records, mask, irap, species)
-
+    
+    ####  SAVE DICTIONARY  ####
+    with open(data_dir+'/spectra.pkl', 'wb') as f:
+        pickle.dump(spectra, f)
 
     ####  PLOT PLOT PLOT PLOT  ####
     sanity.plot_dNch_eta_cent(spectra,sanity_dir)
@@ -90,6 +98,9 @@ def main():
         ref_species = 'charged_hadrons',
     )
 
+    ####  SAVE DICTIONARY  ####
+    with open(data_dir+'/flow.pkl', 'wb') as f:
+        pickle.dump(flow, f)
     ####  PLOT PLOT PLOT PLOT  ####
     sanity.plot_flows(flow,sanity_dir)
     ####  PLOT PLOT PLOT PLOT  ####
