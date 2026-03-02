@@ -734,10 +734,6 @@ def compute_flow(masks, records, irap_sig, irap_ref=None,
             'n_events':    n_ev,
         }
 
-        # print(f"  {lab:8s}%  n_ev={n_ev:6d}  "
-        #       + "  ".join(f"v{n}{{2}}={vn2_int[io]:.4f}±{vn2_int_err[io]:.4f}"
-        #                   for io, n in enumerate(orders)))
-
     return results
 
 def compute_flow_cumulants(masks, records, 
@@ -824,8 +820,8 @@ def compute_flow_cumulants(masks, records,
             # print("rap_cuts in FILE:")
             # for i, cut in enumerate(rap_cuts):
                 # print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
-            NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
-            NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
+            # NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
+            # NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
             
             # print(f"Sub-event A  mean N = {NA.mean():.2f}  max = {NA.max():.0f}")
             # print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
@@ -926,7 +922,7 @@ def compute_flow_cumulants(masks, records,
             # self-correlation subtraction: -M removes i==j pairs
             # denominator M*(M-1) counts all distinct pairs
             # Ref: Bilandzic PRC 83, 044913 (2011) Eq.(6)
-            ok2  = M >= 2
+            ok2  = M >= 4
             c2_vec  = (np.abs(Qm[ok2])**2 - M[ok2]) / (M[ok2] * (M[ok2] - 1))
             c2_mean = c2_vec.mean()
             v2_2[io]     = np.sqrt(max(c2_mean, 0.0))
@@ -952,6 +948,9 @@ def compute_flow_cumulants(masks, records,
             Qm4   = Qm [ok4]
             Q2m4  = Q2m[ok4]
             M4    = M  [ok4]
+
+            c2_vec  = (np.abs(Qm4)**2 - M4) / (M4 * (M4 - 1))
+            c2_mean = c2_vec.mean()
 
             term1    = np.abs(Qm4)**4
             term2    = np.abs(Q2m4)**2

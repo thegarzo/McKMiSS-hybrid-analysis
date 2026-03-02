@@ -91,7 +91,7 @@ def plot_dNch_eta_cent(spectra, plot_path):
 def plot_avg_pt_cent(spectra, plot_path):
     fig, ax = plt.subplots(1, 1, figsize=(6, 5))
     
-    print(spectra.keys())
+    # print(spectra.keys())
     colors = cm.plasma(np.linspace(0.1, 0.9, 4))
     particles=["charged_hadrons",'pi_plus', 'kaon_plus', 'proton']
     label=None
