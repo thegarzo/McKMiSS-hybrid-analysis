@@ -845,6 +845,14 @@ def compute_flow_cumulants(masks, records,
             Qn_mid_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_mid, :, :]
             M_mid_pt    = f[f'particles/{species}/N_pt']   [:, irap_mid, :, ]
 
+            Qn_A_pt_r = f[f'particles/{species}/Qn_real'][:, irap_subA, :, :]
+            Qn_A_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_subA, :, :]
+            M_A_pt    = f[f'particles/{species}/N_pt']   [:, irap_subA, :, ]
+
+            Qn_B_pt_r = f[f'particles/{species}/Qn_real'][:, irap_subB, :, :]
+            Qn_B_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_subB, :, :]
+            M_B_pt    = f[f'particles/{species}/N_pt']   [:, irap_subB, :, ]
+
             # ── sub-event A ────────────────────────────────────────────
             Qn_subA_r = f[f'particles/{ref_species}/Qn_real'][:, irap_subA, :, :].sum(axis=1)
             Qn_subA_i = f[f'particles/{ref_species}/Qn_imag'][:, irap_subA, :, :].sum(axis=1)
@@ -877,6 +885,15 @@ def compute_flow_cumulants(masks, records,
                 acc[lab]['Qn_mid_pt'].append(
                     Qn_mid_pt_r[local_mask] + 1j * Qn_mid_pt_i[local_mask])
                 acc[lab]['M_mid_pt'].append(M_mid_pt[local_mask])
+
+                acc[lab]['Qn_A_pt'].append(
+                    Qn_A_pt_r[local_mask] + 1j * Qn_A_pt_i[local_mask])
+                acc[lab]['M_A_pt'].append(M_A_pt[local_mask])
+
+                acc[lab]['Qn_B_pt'].append(
+                    Qn_B_pt_r[local_mask] + 1j * Qn_B_pt_i[local_mask])
+                acc[lab]['M_B_pt'].append(M_A_pt[local_mask])
+
                 n_events[lab] += local_mask.sum()
 
             offset += n_samp
@@ -900,6 +917,10 @@ def compute_flow_cumulants(masks, records,
         M_subB   = np.concatenate(acc[lab]['M_subB']).astype(float)
         Qn_mid_pt= np.concatenate(acc[lab]['Qn_mid_pt'], axis=0)  # (n_ev, n_pt, n_ord)
         M_mid_pt = np.concatenate(acc[lab]['M_mid_pt'],  axis=0)  # (n_ev, n_pt)
+        Qn_A_pt = np.concatenate(acc[lab]['Qn_A_pt'], axis=0)  # (n_ev, n_pt, n_ord)
+        M_A_pt= np.concatenate(acc[lab]['M_A_pt'],  axis=0)
+        Qn_B_pt = np.concatenate(acc[lab]['Qn_B_pt'], axis=0)  # (n_ev, n_pt, n_ord)
+        M_B_pt= np.concatenate(acc[lab]['M_B_pt'],  axis=0)
 
         v2_2     = np.full(n_ord, np.nan)
         v2_2_err = np.full(n_ord, np.nan)
@@ -977,8 +998,8 @@ def compute_flow_cumulants(masks, records,
                 continue
 
             for ib in range(n_pt):
-                Qb = Qn_mid_pt[:, ib, io]
-                Mb = M_mid_pt [:, ib].astype(float)
+                Qb = Qn_A_pt[:, ib, io]
+                Mb = M_A_pt [:, ib].astype(float)
                 ok_b = (Mb >= 1) & (M_subB >= 1)
                 if ok_b.sum() < 10:
                     continue
@@ -989,9 +1010,9 @@ def compute_flow_cumulants(masks, records,
                 if ok_den.sum() < 10:
                     continue
 
-                rat = num[ok_den] / den[ok_den]
-                vn2_pt[ib, io]     = rat.mean() / ref_norm
-                vn2_pt_err[ib, io] = _bootstrap_rat(rat, ref_norm)
+                d2prime = num[ok_den] / den[ok_den]
+                vn2_pt[ib, io]     = d2prime.mean() / ref_norm
+                vn2_pt_err[ib, io] = _bootstrap_rat(d2prime, ref_norm)
 
         results[lab] = {
             'orders':      orders,
