@@ -807,6 +807,10 @@ def compute_flow_cumulants(masks, records,
         # pT-differential: signal at midrapidity (coarse grid)
         'Qn_mid_pt': [],   # (n_ev, n_pt_flow, n_ord)
         'M_mid_pt':  [],   # (n_ev, n_pt_flow)
+        'Qn_A_pt': [],   # (n_ev, n_pt_flow, n_ord)
+        'M_A_pt':  [],   # (n_ev, n_pt_flow)
+        'Qn_B_pt': [],   # (n_ev, n_pt_flow, n_ord)
+        'M_B_pt':  [],   # (n_ev, n_pt_flow)
     } for lab in labels}
 
     print(f"Computing flow cumulants:")
