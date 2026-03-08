@@ -5,6 +5,10 @@ import sys
 from parameters import *
 import kinematics as kn
 
+def ratio_error(A,dA,B,dB):
+    R=A/B
+    err2 = np.power(dA/B,2.0) +  np.power(R*dB/B,2.0) 
+    return R, np.sqrt(err2)
 
 def inspect_hdf5(filename):
     """Print the full structure of an HDF5 file."""
@@ -883,19 +887,16 @@ def compute_flow_cumulants(masks, records,
                 acc[lab]['Qn_subA'].append(
                     Qn_subA_r[local_mask] + 1j * Qn_subA_i[local_mask])
                 acc[lab]['M_subA'].append(M_subA[local_mask])
-                acc[lab]['Qn_subB'].append(
-                    Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
+                acc[lab]['Qn_subB'].append(Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
                 acc[lab]['M_subB'].append(M_subB[local_mask])
-                acc[lab]['Qn_mid_pt'].append(
-                    Qn_mid_pt_r[local_mask] + 1j * Qn_mid_pt_i[local_mask])
+
+                acc[lab]['Qn_mid_pt'].append(Qn_mid_pt_r[local_mask] + 1j * Qn_mid_pt_i[local_mask])
                 acc[lab]['M_mid_pt'].append(M_mid_pt[local_mask])
 
-                acc[lab]['Qn_A_pt'].append(
-                    Qn_A_pt_r[local_mask] + 1j * Qn_A_pt_i[local_mask])
+                acc[lab]['Qn_A_pt'].append(Qn_A_pt_r[local_mask] + 1j * Qn_A_pt_i[local_mask])
                 acc[lab]['M_A_pt'].append(M_A_pt[local_mask])
 
-                acc[lab]['Qn_B_pt'].append(
-                    Qn_B_pt_r[local_mask] + 1j * Qn_B_pt_i[local_mask])
+                acc[lab]['Qn_B_pt'].append(Qn_B_pt_r[local_mask] + 1j * Qn_B_pt_i[local_mask])
                 acc[lab]['M_B_pt'].append(M_A_pt[local_mask])
 
                 n_events[lab] += local_mask.sum()
@@ -934,6 +935,8 @@ def compute_flow_cumulants(masks, records,
         v2_4_err = np.full(n_ord, np.nan)
         vn2_pt   = np.full((n_pt, n_ord), np.nan)
         vn2_pt_err = np.full((n_pt, n_ord), np.nan)
+        vn2_pt_sub   = np.full((n_pt, n_ord), np.nan)
+        vn2_pt_sub_err = np.full((n_pt, n_ord), np.nan)
 
         for io, n in enumerate(orders):
             Qm  = Qn_mid [:, io]
@@ -997,11 +1000,13 @@ def compute_flow_cumulants(masks, records,
             #          ─────────────────────────────────────────────────────
             #                        sqrt( c2_subAB )
             # normalise by sub-event cumulant for consistency
-            ref_norm = np.sqrt(max(c2sub_mean, 0.0))
-            if ref_norm <= 0:
-                continue
+            # ref_norm = np.sqrt(max(c2sub_mean, 0.0))
+            # if ref_norm <= 0:
+            #     continue
 
             for ib in range(n_pt):
+
+            ## sub-event
                 Qb = Qn_A_pt[:, ib, io]
                 Mb = M_A_pt [:, ib].astype(float)
                 ok_b = (Mb >= 1) & (M_subB >= 1)
@@ -1015,8 +1020,30 @@ def compute_flow_cumulants(masks, records,
                     continue
 
                 d2prime = num[ok_den] / den[ok_den]
-                vn2_pt[ib, io]     = d2prime.mean() / ref_norm
-                vn2_pt_err[ib, io] = _bootstrap_rat(d2prime, ref_norm)
+                d2prime_avg=d2prime.mean()
+                d2prime_err=_bootstrap_rat(d2prime, 1)
+                
+                
+                vn2_pt_sub[ib, io], vn2_pt_sub_err[ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[io]) 
+
+            #  "full" at midrapidity
+                qn_mid_pt= Qn_mid_pt[:, ib, io]
+                mq = M_mid_pt [:, ib].astype(float)
+
+                ok = (mq >= 2) & (M >= 2)
+                if ok.sum() < 10:
+                    continue
+                num    = (Qb[ok] * np.conj(QB[ok])).real- mq[ok]
+                den    =  mq[ok] * M - mq[ok]
+                ok_den = den > 0
+                if ok_den.sum() < 10:
+                    continue
+
+                d2prime = num[ok_den] / den[ok_den]
+                d2prime_avg=d2prime.mean()
+                d2prime_err=_bootstrap_rat(d2prime, 1)
+                
+                vn2_pt[ib, io], vn2_pt_err[ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2[io],v2_2_err[io]) 
 
         results[lab] = {
             'orders':      orders,

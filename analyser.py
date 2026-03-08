@@ -88,7 +88,7 @@ def compute_summary(events):
             if len(pz) > 0:
                 # pseudorapidity: eta = -ln(tan(theta/2)) = 0.5*ln((|p|+pz)/(|p|-pz))
                 p_abs  = np.sqrt(px**2 + py**2 + pz**2)
-                p_t  = np.sqrt(px**2 + py**2 + pz**2)
+                p_t  = np.sqrt(px**2 + py**2)
                 safe   = np.where(p_abs - pz > 0, p_abs - pz, np.inf)
                 eta    = np.where(safe < np.inf,
                                   0.5 * np.log((p_abs + pz) / safe),
@@ -146,8 +146,8 @@ def compute_summary(events):
                         Qn_imag [iev, RCUT, ib, io] = Qn.imag
                         Q2n_real[iev, RCUT, ib, io] = Q2n.real
                         Q2n_imag[iev, RCUT, ib, io] = Q2n.imag
-                        pQn_real[iev, RCUT, ib, io] = pQn.real
-                        pQn_imag[iev, RCUT, ib, io] = pQn.imag
+                        # pQn_real[iev, RCUT, ib, io] = pQn.real
+                        # pQn_imag[iev, RCUT, ib, io] = pQn.imag
 
         out[name] = {
             'N_pt':     N_pt,      # fine grid (n_ev, n_rap, N_PT)
@@ -156,8 +156,8 @@ def compute_summary(events):
             'Qn_imag':  Qn_imag,
             'Q2n_real': Q2n_real,
             'Q2n_imag': Q2n_imag,
-            'pQn_real': pQn_real,
-            'pQn_imag': pQn_imag,
+            # 'pQn_real': pQn_real,
+            # 'pQn_imag': pQn_imag,
             'N_eta':    N_eta,    # shape (n_ev, N_ETA) 
         }
     return out
