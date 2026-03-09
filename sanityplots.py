@@ -101,7 +101,9 @@ def plot_avg_pt_cent(spectra, plot_path):
         for label in spectra[species].keys():
             # pt  = sp['pt_cents']
             dN  = spectra[species][label]['mean_pt']
+            
             err = spectra[species][label]['mean_pt_err']
+            # print(species,label, dN, err)
             low, high = map(float, label.split('-'))
             center = (low + high) / 2
             XERR=[[center-low],[high-center]]
@@ -114,7 +116,7 @@ def plot_avg_pt_cent(spectra, plot_path):
                 ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
                             fmt='o:', ms=3, color=colors[iS])
 
-    ax.set_yscale('log')
+    # ax.set_yscale('log')
     # axes[0].set_xscale('log')
 
     ax.set_xlabel(r'Centrality')
@@ -168,7 +170,7 @@ def plot_pt_spectra(spectra, plot_path, species):
 
 ###################################################### FLOW ###########################################################
 def plot_flows(flow, plot_path):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(14, 5))
     colors = cm.plasma(np.linspace(0.1, 0.9, len(flow)))
 
     cent_labels = list(flow.keys())
@@ -208,15 +210,24 @@ def plot_flows(flow, plot_path):
         io  = 0   # n=2
         v2  = res['vn_2_pt'][:, io]
         err = res['vn_2_pt_err'][:, io]
+
+        v2sub  = res['vn_2_pt_sub'][:, io]
+        suberr = res['vn_2_pt_sub_err'][:, io]
         ok  = np.isfinite(v2)
         if ok.sum() > 0:
             axes[1].errorbar(pt[ok], v2[ok], yerr=err[ok],
                              fmt='o-', ms=3, color=color, label=f'{lab}%')
+            
+            axes[2].errorbar(pt[ok], v2sub[ok], yerr=suberr[ok],
+                             fmt='s-', ms=3, color=color, label=f'{lab}%')
 
     axes[1].set_xlabel(r'$p_T$ (GeV)')
+    axes[2].set_xlabel(r'$p_T$ (GeV)')
     axes[1].set_ylabel(r'$v_2\{2\}(p_T)$')
     axes[1].set_title(r'$v_2\{2\}(p_T)$ by centrality')
+    axes[2].set_title(r'$v_2\{2\}(p_T)$ by centrality_sub')
     axes[1].legend(fontsize=7)
+    axes[2].legend(fontsize=7)
     plt.tight_layout()
     plt.savefig(plot_path+'/flow.pdf')
     print("Saved " + plot_path+"/flow.pdf")

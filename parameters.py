@@ -9,7 +9,7 @@ import numpy as np
 # We start at 0.05 GeV since particles below ~50 MeV/c are below the iSS sampling threshold anyway.
 PT_MIN   = 0.05                            # lower edge [GeV]
 PT_MAX   = 5.0                               # upper edge [GeV]
-N_PT     = 60                                # number of bins
+N_PT     = 50                                # number of bins
 PT_BINS  = np.logspace(np.log10(PT_MIN),
                        np.log10(PT_MAX),
                        N_PT + 1)             # shape (61,) — 60 bin edges
@@ -18,11 +18,13 @@ PT_CENTS = np.sqrt(PT_BINS[:-1] * PT_BINS[1:])  # geometric centre of each bin
 # ── coarse pT grid: for flow vn(pT) ───────────────────────────────────
 # Fewer bins means more particles per bin, more stable Q-vectors.
 # Typical ALICE flow analysis uses ~10-15 bins up to 3 GeV.
-PT_MIN_FLOW  = 0.2
-PT_MAX_FLOW  = 3.0
-N_PT_FLOW    = 12
-PT_BINS_FLOW = np.logspace(np.log10(PT_MIN_FLOW), np.log10(PT_MAX_FLOW),
-                           N_PT_FLOW + 1)
+
+PT_BINS_FLOW = np.array([0.25,0.5, 0.75, 1.0, 1.4, 1.8, 2.2, 3.0, 4.0, 5.0])
+PT_MIN_FLOW  = PT_BINS_FLOW[0]
+PT_MAX_FLOW  = PT_BINS_FLOW[-1]
+N_PT_FLOW    = len(PT_BINS_FLOW)
+# PT_BINS_FLOW = np.logspace(np.log10(PT_MIN_FLOW), np.log10(PT_MAX_FLOW),
+#                            N_PT_FLOW + 1)
 PT_CENTS_FLOW = np.sqrt(PT_BINS_FLOW[:-1] * PT_BINS_FLOW[1:])
 
 ALICE_TRACK_SEL = [PT_MIN,50.]

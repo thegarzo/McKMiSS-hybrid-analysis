@@ -64,8 +64,8 @@ def compute_summary(events):
         Qn_imag   = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
         Q2n_real  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
         Q2n_imag  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
-        pQn_real  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
-        pQn_imag  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
+        # pQn_real  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
+        # pQn_imag  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
 
         # eta histogram — no rapidity window cut, covers full eta range
         # shape (n_ev, N_ETA): count all particles regardless of pT or rapidity window

@@ -427,12 +427,13 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                 # remember n_sel is events
                 n_sel      = local_mask.sum()
                 
+                
                 if n_sel == 0:
                     continue
 
                 N_sel   = N_pt  [local_mask, :]   # (n_sel, n_pt)
                 spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
-
+                # print
                 # accumulate
                 if acc_N[cent] is None:
                     acc_N    [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
@@ -441,19 +442,26 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     acc_sumpt2[cent]    = 0
                     acc_Ns[cent]        = 0
                     acc_Ns2[cent]       = 0
-
-                acc_N    [cent] += N_sel.sum(axis=0)
+                    
+                
+                acc_N    [cent] += N_sel.sum(axis=0) #  (n_pt)
+                # print("acc_N",acc_N[cent])
                 # acc_N2   [cent] += (N_sel.astype(np.float64)**2).sum(axis=0)
                 
-                N_sel_tot=N_sel.sum(axis=1)
-                acc_Ns[cent]+=N_sel_tot.sum()
-                acc_Ns2[cent]+=sum(N_sel_tot*N_sel_tot)
-
-                avg_pt_events=spt_sel.sum(axis=1)/N_sel_tot
+                N_sel_tot=N_sel.sum(axis=1) # (n_sel)
+                # print(cent,"acc_N_tot",N_sel_tot)
+                acc_Ns[cent]+=N_sel_tot.sum() # (float)
+                acc_Ns2[cent]+=sum(N_sel_tot*N_sel_tot) # (float)
+                
+                avg_pt_events=0
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    avg_pt_events= np.divide(spt_sel.sum(axis=1),N_sel_tot)
+                avg_pt_events = np.where(N_sel_tot == 0, 0, avg_pt_events)
+                # avg_pt_events=spt_sel.sum(axis=1)/N_sel_tot
                 acc_sumpt[cent] += np.sum(avg_pt_events)
                 acc_sumpt2[cent] += np.sum(avg_pt_events*avg_pt_events)
                 n_events [cent] += n_sel
-
+                # print(species, cent, n_sel,avg_pt_events)
             offset += n_samp
 
     # ── compute spectra from accumulators ──────────────────────────────
@@ -461,9 +469,10 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
     rap_min  = rap_window[0]
     rap_max  = rap_window[1]
     deta       = rap_max - rap_min                   # rapidity window width
-
+    # print(pt_cents)
     spectra = {}
     for cent in centralities:
+        # print(acc_sumpt[cent],n_events[cent])
         n_ev = n_events[cent]
         if n_ev == 0:
             print(f"  Warning: no events in centrality {cent}%, skipping.")
@@ -493,6 +502,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
         # error on <pT>: standard error of the mean across events
         # approximated from per-bin variance
         mean_pt_err = np.sqrt(var_pt) 
+        # print(cent, mean_pt, acc_sumpt[cent] , n_ev)
 
         spectra[cent] = {
             'pt_cents':    pt_cents,
@@ -977,8 +987,8 @@ def compute_flow_cumulants(masks, records,
             Q2m4  = Q2m[ok4]
             M4    = M  [ok4]
 
-            c2_vec  = (np.abs(Qm4)**2 - M4) / (M4 * (M4 - 1))
-            c2_mean = c2_vec.mean()
+            c2_4_vec  = (np.abs(Qm4)**2 - M4) / (M4 * (M4 - 1))
+            c2_4_mean = c2_4_vec.mean()
 
             term1    = np.abs(Qm4)**4
             term2    = np.abs(Q2m4)**2
@@ -987,11 +997,11 @@ def compute_flow_cumulants(masks, records,
             term5    = 2.0 * M4 * (M4 - 3) * (M4 - 1)
             denom4   = M4 * (M4 - 1) * (M4 - 2) * (M4 - 3)
             four_vec = (term1 + term2 - term3 - term4 + term5) / denom4
-            c4_mean  = four_vec.mean() - 2.0 * c2_mean**2
+            c4_mean  = four_vec.mean() - 2.0 * c2_4_mean**2
             v2_4[io]     = (-c4_mean)**0.25 if c4_mean < 0 else np.nan
-            v2_4_err[io] = _bootstrap_v2(c2_vec, kind='4',
+            v2_4_err[io] = _bootstrap_v2(c2_4_vec, kind='4',
                                          four_vec=four_vec,
-                                         c2_mean=c2_mean)
+                                         c2_mean=c2_4_mean)
 
             # ── pT-differential v2{2}(pT) ──────────────────────────
             # signal: species at irap_mid per pT bin
@@ -1020,7 +1030,8 @@ def compute_flow_cumulants(masks, records,
                     continue
 
                 d2prime = num[ok_den] / den[ok_den]
-                d2prime_avg=d2prime.mean()
+                weights = den[ok_den]
+                d2prime_avg=np.average(d2prime, weights=weights)
                 d2prime_err=_bootstrap_rat(d2prime, 1)
                 
                 
@@ -1033,14 +1044,15 @@ def compute_flow_cumulants(masks, records,
                 ok = (mq >= 2) & (M >= 2)
                 if ok.sum() < 10:
                     continue
-                num    = (qn_mid_pt[ok] * np.conj(QB[ok])).real- mq[ok]
+                num    = (qn_mid_pt[ok] * np.conj(Qm[ok])).real- mq[ok]
                 den    =  mq[ok] * M[ok] - mq[ok]
                 ok_den = den > 0
                 if ok_den.sum() < 10:
                     continue
 
                 d2prime = num[ok_den] / den[ok_den]
-                d2prime_avg=d2prime.mean()
+                weights = den[ok_den]
+                d2prime_avg=np.average(d2prime, weights=weights)
                 d2prime_err=_bootstrap_rat(d2prime, 1)
                 
                 vn2_pt[ib, io], vn2_pt_err[ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2[io],v2_2_err[io]) 
@@ -1056,6 +1068,8 @@ def compute_flow_cumulants(masks, records,
             'vn_4_err':    v2_4_err,    # was 'v2_4_err'
             'vn_2_pt':     vn2_pt,      # was 'vn2_pt'
             'vn_2_pt_err': vn2_pt_err,  # was 'vn2_pt_err'
+            'vn_2_pt_sub':     vn2_pt_sub,      # was 'vn2_pt'
+            'vn_2_pt_sub_err': vn2_pt_sub_err,  # was 'vn2_pt_err'
             'n_events':    n_ev,
         }
 
