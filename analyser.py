@@ -60,6 +60,7 @@ def compute_summary(events):
         sum_pt    = np.zeros((n_ev, n_rap_cuts, N_PT),             dtype=np.float32)
 
         # coarse grid — for flow Q-vectors
+        N_pt_flow      = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW), dtype=np.int32)
         Qn_real   = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
         Qn_imag   = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
         Q2n_real  = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW, n_ord), dtype=np.float32)
@@ -137,10 +138,12 @@ def compute_summary(events):
                     pt_b  = pt_fl [sel]
                     phi_b = phi_fl[sel]
 
+                    N_pt_flow [iev, RCUT, ib] = sel.sum()
+                    
                     for io, n in enumerate(ORDERS):
                         Qn  = np.sum(np.exp( 1j * n * phi_b))
                         Q2n = np.sum(np.exp( 2j * n * phi_b))
-                        pQn = np.sum(pt_b * np.exp(1j * n * phi_b))
+                        # pQn = np.sum(pt_b * np.exp(1j * n * phi_b))
 
                         Qn_real [iev, RCUT, ib, io] = Qn.real
                         Qn_imag [iev, RCUT, ib, io] = Qn.imag
@@ -156,6 +159,7 @@ def compute_summary(events):
             'Qn_imag':  Qn_imag,
             'Q2n_real': Q2n_real,
             'Q2n_imag': Q2n_imag,
+            'N_pt_flow': N_pt_flow,
             # 'pQn_real': pQn_real,
             # 'pQn_imag': pQn_imag,
             'N_eta':    N_eta,    # shape (n_ev, N_ETA) 

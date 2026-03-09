@@ -83,8 +83,8 @@ def main():
     ## Flow 
     # signal: pi_plus at midrapidity
     # reference: charged_hadrons at forward rapidity (different window -> no autocorrelations)
-    irap_sig = RAP_CUTS_ASSIGMENTS['ALICE midrapidity']   # 0: [-0.8, 0.8]
-    irap_ref = RAP_CUTS_ASSIGMENTS['VZERO-A']             # 2: [2.8, 5.1]
+    # irap_sig = RAP_CUTS_ASSIGMENTS['ALICE midrapidity']   # 0: [-0.8, 0.8]
+    # irap_ref = RAP_CUTS_ASSIGMENTS['VZERO-A']             # 2: [2.8, 5.1]
 
     # flow = pr.compute_flow(mask, records,irap_sig,irap_ref,'pi_plus','charged_hadrons')
     

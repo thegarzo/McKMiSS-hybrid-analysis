@@ -752,7 +752,6 @@ def compute_flow(masks, records, irap_sig, irap_ref=None,
 
 def compute_flow_cumulants(masks, records, 
                            irap_mid, irap_subA, irap_subB,
-                           species='pi_plus',
                            ref_species='charged_hadrons'):
     """
     Compute flow cumulants using the direct Q-vector method.
@@ -808,7 +807,14 @@ def compute_flow_cumulants(masks, records,
 
     # per-event accumulators — store raw per-event quantities,
     # compute cumulants after loading all files
-    acc = {lab: {
+    flow_species = {
+        'pions': ['pi_minus','pi_plus'],
+        'kaons': ['kaon_plus','kaon_minus'],
+        'protons': ['proton','anti-proton'],
+        'charge_hadrons': 'charged_hadrons'}
+    acc={}
+    # Let's fill the reference class
+    acc['Ref'] = {lab: {
         # standard cumulant: midrapidity
         'M_mid':     [],   # (n_ev,)
         'Qn_mid':    [],   # (n_ev, n_ord)
@@ -818,19 +824,25 @@ def compute_flow_cumulants(masks, records,
         'M_subA':    [],
         'Qn_subB':   [],   # (n_ev, n_ord)
         'M_subB':    [],
-        # pT-differential: signal at midrapidity (coarse grid)
-        'Qn_mid_pt': [],   # (n_ev, n_pt_flow, n_ord)
-        'M_mid_pt':  [],   # (n_ev, n_pt_flow)
-        'Qn_A_pt': [],   # (n_ev, n_pt_flow, n_ord)
-        'M_A_pt':  [],   # (n_ev, n_pt_flow)
-        'Qn_B_pt': [],   # (n_ev, n_pt_flow, n_ord)
-        'M_B_pt':  [],   # (n_ev, n_pt_flow)
-    } for lab in labels}
+        } for lab in labels}
+    # now the signal clasws
+    for species in flow_species.keys():
+        acc[species] = {lab: {
+            # pT-differential: signal at midrapidity (coarse grid)
+            'Qn_mid_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_mid_pt':  [],   # (n_ev, n_pt_flow)
+            'Qn_A_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_A_pt':  [],   # (n_ev, n_pt_flow)
+            'Qn_B_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_B_pt':  [],   # (n_ev, n_pt_flow)
+        } for lab in labels}
 
-    print(f"Computing flow cumulants:")
-    print(f"  Signal species  : {species}  irap_mid={irap_mid}")
-    print(f"  Sub-event A     : {ref_species}  irap_subA={irap_subA}")
-    print(f"  Sub-event B     : {ref_species}  irap_subB={irap_subB}")
+
+
+    # print(f"Computing flow cumulants:")
+    # print(f"  Signal species  : {species}  irap_mid={irap_mid}")
+    # print(f"  Sub-event A     : {ref_species}  irap_subA={irap_subA}")
+    # print(f"  Sub-event B     : {ref_species}  irap_subB={irap_subB}")
 
     for fname in files:
         with h5py.File(fname, 'r') as f:
@@ -850,36 +862,67 @@ def compute_flow_cumulants(masks, records,
                 n_pt      = len(pt_cents)
                 n_ord     = len(orders)
 
+            Qn_mid_pt_r = {}
+            Qn_mid_pt_i = {}
+            M_mid_pt    ={}
+
+            Qn_A_pt_r = {}
+            Qn_A_pt_i = {}
+            M_A_pt    = {}
+
+            Qn_B_pt_r = {}
+            Qn_B_pt_i = {}
+            M_B_pt    = {}
+
             # ── midrapidity signal ─────────────────────────────────────
             # integrated: sum over pT bins -> (n_samp, n_ord)
-            Qn_mid_r  = f[f'particles/{species}/Qn_real'] [:, irap_mid, :, :].sum(axis=1)
-            Qn_mid_i  = f[f'particles/{species}/Qn_imag'] [:, irap_mid, :, :].sum(axis=1)
-            Q2n_mid_r = f[f'particles/{species}/Q2n_real'][:, irap_mid, :, :].sum(axis=1)
-            Q2n_mid_i = f[f'particles/{species}/Q2n_imag'][:, irap_mid, :, :].sum(axis=1)
-            M_mid     = f[f'particles/{species}/N_pt']    [:, irap_mid, :].sum(axis=1)
 
-            # pT-differential: keep pT axis -> (n_samp, n_pt_flow, n_ord)
-            Qn_mid_pt_r = f[f'particles/{species}/Qn_real'][:, irap_mid, :, :]
-            Qn_mid_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_mid, :, :]
-            M_mid_pt    = f[f'particles/{species}/N_pt']   [:, irap_mid, :, ]
-
-            Qn_A_pt_r = f[f'particles/{species}/Qn_real'][:, irap_subA, :, :]
-            Qn_A_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_subA, :, :]
-            M_A_pt    = f[f'particles/{species}/N_pt']   [:, irap_subA, :, ]
-
-            Qn_B_pt_r = f[f'particles/{species}/Qn_real'][:, irap_subB, :, :]
-            Qn_B_pt_i = f[f'particles/{species}/Qn_imag'][:, irap_subB, :, :]
-            M_B_pt    = f[f'particles/{species}/N_pt']   [:, irap_subB, :, ]
+            Qn_mid_r = f[f'particles/{ref_species}/Qn_real'] [:, irap_mid, :, :].sum(axis=1)
+            Qn_mid_i  = f[f'particles/{ref_species}/Qn_imag'] [:, irap_mid, :, :].sum(axis=1)
+            Q2n_mid_r = f[f'particles/{ref_species}/Q2n_real'][:, irap_mid, :, :].sum(axis=1)
+            Q2n_mid_i = f[f'particles/{ref_species}/Q2n_imag'][:, irap_mid, :, :].sum(axis=1)
+            M_mid     = f[f'particles/{ref_species}/N_pt_flow']    [:, irap_mid, :].sum(axis=1)
 
             # ── sub-event A ────────────────────────────────────────────
             Qn_subA_r = f[f'particles/{ref_species}/Qn_real'][:, irap_subA, :, :].sum(axis=1)
             Qn_subA_i = f[f'particles/{ref_species}/Qn_imag'][:, irap_subA, :, :].sum(axis=1)
-            M_subA    = f[f'particles/{ref_species}/N_pt']   [:, irap_subA, :].sum(axis=1)
+            M_subA    = f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subA, :].sum(axis=1)
 
             # ── sub-event B ────────────────────────────────────────────
             Qn_subB_r = f[f'particles/{ref_species}/Qn_real'][:, irap_subB, :, :].sum(axis=1)
             Qn_subB_i = f[f'particles/{ref_species}/Qn_imag'][:, irap_subB, :, :].sum(axis=1)
-            M_subB    = f[f'particles/{ref_species}/N_pt']   [:, irap_subB, :].sum(axis=1)
+            M_subB    = f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subB, :].sum(axis=1)
+            
+            for particle in flow_species.keys():
+                if particle=='charged_hadrons':
+                    species=flow_species[particle]
+                    Qn_mid_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_mid, :, :]
+                    Qn_mid_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_mid, :, :]
+                    M_mid_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_mid, :, ]
+
+                    Qn_A_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_subA, :, :]
+                    Qn_A_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_subA, :, :]
+                    M_A_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_subA, :, ]
+
+                    Qn_B_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_subB, :, :]
+                    Qn_B_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_subB, :, :]
+                    M_B_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_subB, :, ]
+
+                else:
+                    species=flow_species[particle]
+                    Qn_mid_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_mid, :, :]
+                    Qn_mid_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_mid, :, :]
+                    M_mid_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_mid, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_mid, :, ]
+
+                    Qn_A_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subA, :, :]
+                    Qn_A_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subA, :, :]
+                    M_A_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subA, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subA, :, ]
+
+                    Qn_B_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subB, :, :]
+                    Qn_B_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subB, :, :]
+                    M_B_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subB, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subB, :, ]
+
+                    
 
             n_samp     = M_mid.shape[0]
             file_slice = slice(offset, offset + n_samp)
@@ -889,25 +932,25 @@ def compute_flow_cumulants(masks, records,
                 if local_mask.sum() == 0:
                     continue
 
-                acc[lab]['M_mid'].append(M_mid[local_mask])
-                acc[lab]['Qn_mid'].append(
-                    Qn_mid_r[local_mask] + 1j * Qn_mid_i[local_mask])
-                acc[lab]['Q2n_mid'].append(
-                    Q2n_mid_r[local_mask] + 1j * Q2n_mid_i[local_mask])
-                acc[lab]['Qn_subA'].append(
-                    Qn_subA_r[local_mask] + 1j * Qn_subA_i[local_mask])
-                acc[lab]['M_subA'].append(M_subA[local_mask])
-                acc[lab]['Qn_subB'].append(Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
-                acc[lab]['M_subB'].append(M_subB[local_mask])
+                acc['Ref'][lab]['M_mid'].append(M_mid[local_mask])
+                acc['Ref'][lab]['Qn_mid'].append(Qn_mid_r[local_mask] + 1j * Qn_mid_i[local_mask])
+                acc['Ref'][lab]['Q2n_mid'].append(Q2n_mid_r[local_mask] + 1j * Q2n_mid_i[local_mask])
 
-                acc[lab]['Qn_mid_pt'].append(Qn_mid_pt_r[local_mask] + 1j * Qn_mid_pt_i[local_mask])
-                acc[lab]['M_mid_pt'].append(M_mid_pt[local_mask])
+                acc['Ref'][lab]['Qn_subA'].append(Qn_subA_r[local_mask] + 1j * Qn_subA_i[local_mask])
+                acc['Ref'][lab]['M_subA'].append(M_subA[local_mask])
+                
+                acc['Ref'][lab]['Qn_subB'].append(Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
+                acc['Ref'][lab]['M_subB'].append(M_subB[local_mask])
 
-                acc[lab]['Qn_A_pt'].append(Qn_A_pt_r[local_mask] + 1j * Qn_A_pt_i[local_mask])
-                acc[lab]['M_A_pt'].append(M_A_pt[local_mask])
+                for particle in flow_species.keys():
+                    acc[particle][lab]['Qn_mid_pt'].append(Qn_mid_pt_r[particle][local_mask] + 1j * Qn_mid_pt_i[particle][local_mask])
+                    acc[particle][lab]['M_mid_pt'].append(M_mid_pt[particle][local_mask])
 
-                acc[lab]['Qn_B_pt'].append(Qn_B_pt_r[local_mask] + 1j * Qn_B_pt_i[local_mask])
-                acc[lab]['M_B_pt'].append(M_A_pt[local_mask])
+                    acc[particle][lab]['Qn_A_pt'].append(Qn_A_pt_r[particle][local_mask] + 1j * Qn_A_pt_i[particle][local_mask])
+                    acc[particle][lab]['M_A_pt'].append(M_A_pt[particle][local_mask])
+
+                    acc[particle][lab]['Qn_B_pt'].append(Qn_B_pt_r[particle][local_mask] + 1j * Qn_B_pt_i[particle][local_mask])
+                    acc[particle][lab]['M_B_pt'].append(M_B_pt[particle][local_mask])
 
                 n_events[lab] += local_mask.sum()
 
@@ -923,19 +966,27 @@ def compute_flow_cumulants(masks, records,
             continue
 
         # concatenate
-        M_mid    = np.concatenate(acc[lab]['M_mid']).astype(float)
-        Qn_mid   = np.concatenate(acc[lab]['Qn_mid'],    axis=0)  # (n_ev, n_ord)
-        Q2n_mid  = np.concatenate(acc[lab]['Q2n_mid'],   axis=0)
-        Qn_subA  = np.concatenate(acc[lab]['Qn_subA'],   axis=0)
-        M_subA   = np.concatenate(acc[lab]['M_subA']).astype(float)
-        Qn_subB  = np.concatenate(acc[lab]['Qn_subB'],   axis=0)
-        M_subB   = np.concatenate(acc[lab]['M_subB']).astype(float)
-        Qn_mid_pt= np.concatenate(acc[lab]['Qn_mid_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-        M_mid_pt = np.concatenate(acc[lab]['M_mid_pt'],  axis=0)  # (n_ev, n_pt)
-        Qn_A_pt = np.concatenate(acc[lab]['Qn_A_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-        M_A_pt= np.concatenate(acc[lab]['M_A_pt'],  axis=0)
-        Qn_B_pt = np.concatenate(acc[lab]['Qn_B_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-        M_B_pt= np.concatenate(acc[lab]['M_B_pt'],  axis=0)
+        M_mid    = np.concatenate(acc['Ref'][lab]['M_mid']).astype(float)
+        Qn_mid   = np.concatenate(acc['Ref'][lab]['Qn_mid'],    axis=0)  # (n_ev, n_ord)
+        Q2n_mid  = np.concatenate(acc['Ref'][lab]['Q2n_mid'],   axis=0)
+        Qn_subA  = np.concatenate(acc['Ref'][lab]['Qn_subA'],   axis=0)
+        M_subA   = np.concatenate(acc['Ref'][lab]['M_subA']).astype(float)
+        Qn_subB  = np.concatenate(acc['Ref'][lab]['Qn_subB'],   axis=0)
+        M_subB   = np.concatenate(acc['Ref'][lab]['M_subB']).astype(float)
+        
+        Qn_mid_pt= {} # (n_ev, n_pt, n_ord)
+        M_mid_pt = {}  # (n_ev, n_pt)
+        Qn_A_pt = {}  # (n_ev, n_pt, n_ord)
+        M_A_pt= {}
+        Qn_B_pt = {}  # (n_ev, n_pt, n_ord)
+        M_B_pt= {}
+        for particle in flow_species.keys():
+            Qn_mid_pt[particle]= np.concatenate(acc[particle][lab]['Qn_mid_pt'], axis=0)  # (n_ev, n_pt, n_ord)
+            M_mid_pt[particle] = np.concatenate(acc[particle][lab]['M_mid_pt'],  axis=0)  # (n_ev, n_pt)
+            Qn_A_pt[particle] = np.concatenate(acc[particle][lab]['Qn_A_pt'], axis=0)  # (n_ev, n_pt, n_ord)
+            M_A_pt[particle]= np.concatenate(acc[particle][lab]['M_A_pt'],  axis=0)
+            Qn_B_pt[particle] = np.concatenate(acc[particle][lab]['Qn_B_pt'], axis=0)  # (n_ev, n_pt, n_ord)
+            M_B_pt[particle]= np.concatenate(acc[particle][lab]['M_B_pt'],  axis=0)
 
         v2_2     = np.full(n_ord, np.nan)
         v2_2_err = np.full(n_ord, np.nan)
@@ -943,10 +994,16 @@ def compute_flow_cumulants(masks, records,
         v2_2sub_err = np.full(n_ord, np.nan)
         v2_4     = np.full(n_ord, np.nan)
         v2_4_err = np.full(n_ord, np.nan)
-        vn2_pt   = np.full((n_pt, n_ord), np.nan)
-        vn2_pt_err = np.full((n_pt, n_ord), np.nan)
-        vn2_pt_sub   = np.full((n_pt, n_ord), np.nan)
-        vn2_pt_sub_err = np.full((n_pt, n_ord), np.nan)
+
+        vn2_pt   = {}
+        vn2_pt_err = {}
+        vn2_pt_sub   = {}
+        vn2_pt_sub_err = {}
+        for particle in flow_species.keys():
+            vn2_pt[particle]   = np.full((n_pt, n_ord), np.nan)
+            vn2_pt_err[particle] = np.full((n_pt, n_ord), np.nan)
+            vn2_pt_sub[particle]   = np.full((n_pt, n_ord), np.nan)
+            vn2_pt_sub_err[particle] = np.full((n_pt, n_ord), np.nan)
 
         for io, n in enumerate(orders):
             Qm  = Qn_mid [:, io]
@@ -1013,49 +1070,65 @@ def compute_flow_cumulants(masks, records,
             # ref_norm = np.sqrt(max(c2sub_mean, 0.0))
             # if ref_norm <= 0:
             #     continue
+            for particle in flow_species.keys():
+                for ib in range(n_pt):
 
-            for ib in range(n_pt):
+                ## sub-event differential flow
+                    Qb = Qn_A_pt[particle][:, ib, io]
+                    Mb = M_A_pt [particle][:, ib].astype(float)
+                    ok_b = (Mb >= 1) & (M_subB >= 1)
+                    if ok_b.sum() < 10:
+                        continue
 
-            ## sub-event
-                Qb = Qn_A_pt[:, ib, io]
-                Mb = M_A_pt [:, ib].astype(float)
-                ok_b = (Mb >= 1) & (M_subB >= 1)
-                if ok_b.sum() < 10:
-                    continue
+                    num    = (Qb[ok_b] * np.conj(QB[ok_b])).real
+                    den    = Mb[ok_b] * M_subB[ok_b]
+                    ok_den = den > 0
+                    if ok_den.sum() < 10:
+                        continue
 
-                num    = (Qb[ok_b] * np.conj(QB[ok_b])).real
-                den    = Mb[ok_b] * M_subB[ok_b]
-                ok_den = den > 0
-                if ok_den.sum() < 10:
-                    continue
+                    d2prime = num[ok_den] / den[ok_den]
+                    weights = den[ok_den]
+                    d2prime_avg=np.average(d2prime, weights=weights)
+                    d2prime_err=_bootstrap_rat(d2prime, 1)
+                    vn2_pt_sub[particle][ib, io], vn2_pt_sub_err[particle][ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[io]) 
 
-                d2prime = num[ok_den] / den[ok_den]
-                weights = den[ok_den]
-                d2prime_avg=np.average(d2prime, weights=weights)
-                d2prime_err=_bootstrap_rat(d2prime, 1)
+                #  "full" differential flow at midrapidity
+                    qn_mid_pt= Qn_mid_pt[particle][:, ib, io]
+                    mq = M_mid_pt [particle][:, ib].astype(float)
+
+                    ok = (mq >= 2) & (M >= 2)
+
+                    # num_raw = (qn_mid_pt[ok] * np.conj(Qm[ok])).real
+                    # num = num_raw - mq[ok]
+                    # den = mq[ok] * M[ok] - mq[ok]
+                    # ok_den = den > 0
+                    
+                    # print(f"pT bin {ib}:")
+                    # print(f"  mq (particles in bin): {mq[ok].mean():.2f} ± {mq[ok].std():.2f}")
+                    # print(f"  M (total mid): {M[ok].mean():.1f}")
+                    # print(f"  num_raw: {num_raw[ok_den].mean():.4f}")
+                    # print(f"  num (after -mq): {num[ok_den].mean():.4f}")
+                    # print(f"  den: {den[ok_den].mean():.1f}")
+                    # print(f"  d2prime: {(num[ok_den]/den[ok_den]).mean():.6f}")
+                    # print(f"  v2_2[io]: {v2_2[io]:.4f}")
+                    # print(f"  vn2_pt ratio: {(num[ok_den]/den[ok_den]).mean() / v2_2[io]:.4f}")
+                    # print()
+
+                    if ok.sum() < 10:
+                        continue
+                    num    = (qn_mid_pt[ok] * np.conj(Qm[ok])).real- mq[ok]
+                    den    =  mq[ok] * M[ok] - mq[ok]
+                    ok_den = den > 0
+                    if ok_den.sum() < 10:
+                        continue
+
+                    d2prime = num[ok_den] / den[ok_den]
+                    weights = den[ok_den]
+                    d2prime_avg=np.average(d2prime, weights=weights)
+                    d2prime_err=_bootstrap_rat(d2prime, 1)
+                    vn2_pt[particle][ib, io], vn2_pt_err[particle][ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2[io],v2_2_err[io]) 
+ 
                 
-                
-                vn2_pt_sub[ib, io], vn2_pt_sub_err[ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[io]) 
-
-            #  "full" at midrapidity
-                qn_mid_pt= Qn_mid_pt[:, ib, io]
-                mq = M_mid_pt [:, ib].astype(float)
-
-                ok = (mq >= 2) & (M >= 2)
-                if ok.sum() < 10:
-                    continue
-                num    = (qn_mid_pt[ok] * np.conj(Qm[ok])).real- mq[ok]
-                den    =  mq[ok] * M[ok] - mq[ok]
-                ok_den = den > 0
-                if ok_den.sum() < 10:
-                    continue
-
-                d2prime = num[ok_den] / den[ok_den]
-                weights = den[ok_den]
-                d2prime_avg=np.average(d2prime, weights=weights)
-                d2prime_err=_bootstrap_rat(d2prime, 1)
-                
-                vn2_pt[ib, io], vn2_pt_err[ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2[io],v2_2_err[io]) 
 
         results[lab] = {
             'orders':      orders,
