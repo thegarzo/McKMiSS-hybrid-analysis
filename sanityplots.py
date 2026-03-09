@@ -128,6 +128,46 @@ def plot_avg_pt_cent(spectra, plot_path):
     plt.savefig(plot_path+'/mean_pt_cent.pdf')
     print("Saved "+plot_path+"/mean_pt_cent.pdf")
 
+def plot_avg_pt_cent_CHADs(spectra, plot_path):
+    fig, ax = plt.subplots(1, 1, figsize=(6, 5))
+    
+    # print(spectra.keys())
+    colors = cm.plasma(np.linspace(0.1, 0.9, 4))
+    particles=["charged_hadrons"]
+    label=None
+
+    for iS, species in enumerate(particles):
+        tag=None
+        for label in spectra[species].keys():
+            # pt  = sp['pt_cents']
+            dN  = spectra[species][label]['mean_pt']
+            
+            err = spectra[species][label]['mean_pt_err']
+            # print(species,label, dN, err)
+            low, high = map(float, label.split('-'))
+            center = (low + high) / 2
+            XERR=[[center-low],[high-center]]
+            
+            if tag is None:
+                ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
+                            fmt='o:', ms=3, color=colors[iS], label=SPECIES_NAMES[species])
+                tag=1
+            else:
+                ax.errorbar([center], [dN], xerr=XERR,yerr=[err],
+                            fmt='o:', ms=3, color=colors[iS])
+
+    # ax.set_yscale('log')
+    # axes[0].set_xscale('log')
+
+    ax.set_xlabel(r'Centrality')
+    ax.set_ylabel(r'$dN_{ch}/d\eta$')
+    ax.set_title(r'spectra by centrality')
+    ax.legend(fontsize=7)
+
+    plt.tight_layout()
+    plt.savefig(plot_path+'/mean_pt_cent.pdf')
+    print("Saved "+plot_path+"/mean_pt_cent.pdf")
+
 
 
 ###################################################### PT ###########################################################
