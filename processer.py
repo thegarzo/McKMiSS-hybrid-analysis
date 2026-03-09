@@ -1034,7 +1034,7 @@ def compute_flow_cumulants(masks, records,
                 if ok.sum() < 10:
                     continue
                 num    = (qn_mid_pt[ok] * np.conj(QB[ok])).real- mq[ok]
-                den    =  mq[ok] * M - mq[ok]
+                den    =  mq[ok] * M[ok] - mq[ok]
                 ok_den = den > 0
                 if ok_den.sum() < 10:
                     continue
