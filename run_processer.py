@@ -94,8 +94,7 @@ def main():
         irap_mid    = RAP_CUTS_ASSIGMENTS['ALICE midrapidity'],  # 0
         irap_subA   = RAP_CUTS_ASSIGMENTS['ALICE Flow Sub-event A'],  # 4
         irap_subB   = RAP_CUTS_ASSIGMENTS['ALICE Flow Sub-event B'],  # 5
-        species     = 'charged_hadrons',
-        ref_species = 'charged_hadrons',
+        ref_species = 'charged_hadrons'
     )
 
     ####  SAVE DICTIONARY  ####
