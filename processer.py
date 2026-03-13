@@ -817,7 +817,7 @@ def compute_flow_cumulants(masks, records,
         'pions': ['pi_minus','pi_plus'],
         'kaons': ['kaon_plus','kaon_minus'],
         'protons': ['proton','anti-proton'],
-        'charge_hadrons': 'charged_hadrons'}
+        'charged_hadrons': 'charged_hadrons'}
     acc={}
     # Let's fill the reference class
     acc['Ref'] = {lab: {
