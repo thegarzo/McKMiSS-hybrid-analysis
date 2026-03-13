@@ -83,51 +83,57 @@ def first_pass_centrality(filenames, irap_cent,
     n_events_per_file = []
 
     for ifile, fname in enumerate(filenames):
-        with h5py.File(fname, 'r') as f:
+        try:
+            with h5py.File(fname, 'r') as f:
 
-            # ── validate rapidity window ───────────────────────────────
-            rap_cuts = f['metadata'].attrs['rap_cuts']  # shape (n_rap, 2)
+                # ── validate rapidity window ───────────────────────────────
+                rap_cuts = f['metadata'].attrs['rap_cuts']  # shape (n_rap, 2)
 
-            if irap_cent >= len(rap_cuts):
-                raise ValueError(
-                    f"irap_cent={irap_cent} out of range: file {fname} "
-                    f"has {len(rap_cuts)} rapidity cuts:\n{rap_cuts}"
-                )
-
-            this_rap_window = list(rap_cuts[irap_cent])
-
-            if rap_window is None:
-                rap_window = this_rap_window
-                print(f"Centrality estimator : '{charged_key}'")
-                print(f"Rapidity window      : [{rap_window[0]:.2f}, "
-                      f"{rap_window[1]:.2f}]  (irap={irap_cent})")
-            else:
-                if not np.allclose(rap_window, this_rap_window, atol=1e-4):
+                if irap_cent >= len(rap_cuts):
                     raise ValueError(
-                        f"RAP_CUTS mismatch at irap={irap_cent}: "
-                        f"expected {rap_window}, got {this_rap_window} "
-                        f"in {fname}."
+                        f"irap_cent={irap_cent} out of range: file {fname} "
+                        f"has {len(rap_cuts)} rapidity cuts:\n{rap_cuts}"
                     )
 
-            # ── validate charged species exists ────────────────────────
-            path = f'particles/{charged_key}/N_pt'
-            if path not in f:
-                available = list(f['particles'].keys())
-                raise KeyError(
-                    f"'{charged_key}' not found in {fname}. "
-                    f"Available species: {available}"
-                )
+                this_rap_window = list(rap_cuts[irap_cent])
 
-            # ── read N_pt for this rapidity cut only ───────────────────
-            # Shape: (n_samp, n_rap, n_pt) -> select irap, sum over pT
-            N_ch   = f[path][:, irap_cent, :].sum(axis=-1).astype(np.int32)
-            n_samp = len(N_ch)
+                if rap_window is None:
+                    rap_window = this_rap_window
+                    print(f"Centrality estimator : '{charged_key}'")
+                    print(f"Rapidity window      : [{rap_window[0]:.2f}, "
+                        f"{rap_window[1]:.2f}]  (irap={irap_cent})")
+                else:
+                    if not np.allclose(rap_window, this_rap_window, atol=1e-4):
+                        raise ValueError(
+                            f"RAP_CUTS mismatch at irap={irap_cent}: "
+                            f"expected {rap_window}, got {this_rap_window} "
+                            f"in {fname}."
+                        )
 
-            all_N_ch.append(N_ch)
-            all_file_index.append(np.full(n_samp, ifile, dtype=np.int32))
-            all_event_index.append(np.arange(n_samp,     dtype=np.int32))
-            n_events_per_file.append(n_samp)
+                # ── validate charged species exists ────────────────────────
+                path = f'particles/{charged_key}/N_pt'
+                if path not in f:
+                    available = list(f['particles'].keys())
+                    raise KeyError(
+                        f"'{charged_key}' not found in {fname}. "
+                        f"Available species: {available}"
+                    )
 
+                # ── read N_pt for this rapidity cut only ───────────────────
+                # Shape: (n_samp, n_rap, n_pt) -> select irap, sum over pT
+                N_ch   = f[path][:, irap_cent, :].sum(axis=-1).astype(np.int32)
+                n_samp = len(N_ch)
+
+                all_N_ch.append(N_ch)
+                all_file_index.append(np.full(n_samp, ifile, dtype=np.int32))
+                all_event_index.append(np.arange(n_samp,     dtype=np.int32))
+                n_events_per_file.append(n_samp)
+
+        except Exception as e:
+            print(f"Error opening file: {fname}")
+            print(f"Error message: {e}")
+            # optionally continue to next file or raise
+            continue
         if (ifile + 1) % 50 == 0 or (ifile + 1) == len(filenames):
             print(f"  {ifile+1}/{len(filenames)} files, "
                   f"{sum(n_events_per_file)} sampling events ...")
