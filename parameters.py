@@ -8,8 +8,8 @@ import numpy as np
 # Log spacing gives finer resolution at low pT and coarser bins at high pT 
 # We start at 0.05 GeV since particles below ~50 MeV/c are below the iSS sampling threshold anyway.
 PT_MIN   = 0.1                            # lower edge [GeV]
-PT_MAX   = 4.0                               # upper edge [GeV]
-N_PT     = 20                                # number of bins
+PT_MAX   = 5.0                               # upper edge [GeV]
+N_PT     = 25                                # number of bins
 PT_BINS  = np.logspace(np.log10(PT_MIN),
                        np.log10(PT_MAX),
                        N_PT + 1)             # shape (61,) — 60 bin edges
@@ -92,9 +92,9 @@ BARYONS={
 # But we need to also consider other rapidity windows for analysis.
 RAP_CUTS  ={
     0: [-0.8,0.8], # ALICE midrapidity
-    1: [-3.3,-2.1], 
-    2: [2.8,5.1],   # VZERO-A
-    3: [-3.7,-1.7], # VZERO-C
+    # 1: [-3.3,-2.1], 
+    # 2: [2.8,5.1],   # VZERO-A
+    # 3: [-3.7,-1.7], # VZERO-C
     4: [-0.8,-0.4], # ALICE Flow Sub-event A
     5: [0.4,0.8], # ALICE Flow Sub-event B
 } 
@@ -102,9 +102,9 @@ RAP_CUTS  ={
 
 RAP_CUTS_ASSIGMENTS  ={
     "ALICE midrapidity": 0,
-    "ALICE backward": 1,
-    "VZERO-A": 2,
-    "VZERO-C": 3,
+    # "ALICE backward": 1,
+    # "VZERO-A": 2,
+    # "VZERO-C": 3,
     "ALICE Flow Sub-event A": 4,
     "ALICE Flow Sub-event B": 5,
 } 
