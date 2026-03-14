@@ -248,11 +248,11 @@ def plot_flows(flow, plot_path):
     for (lab, res), color in zip(flow.items(), colors):
         pt  = res['pt_cents']
         io  = 0   # n=2
-        v2  = res['vn_2_pt'][:, io]
-        err = res['vn_2_pt_err'][:, io]
+        v2  = res['vn_2_pt']['charged_hadrons'][:, io]
+        err = res['vn_2_pt_err']['charged_hadrons'][:, io]
 
-        v2sub  = res['vn_2_pt_sub'][:, io]
-        suberr = res['vn_2_pt_sub_err'][:, io]
+        v2sub  = res['vn_2_pt_sub']['charged_hadrons'][:, io]
+        suberr = res['vn_2_pt_sub_err']['charged_hadrons'][:, io]
         ok  = np.isfinite(v2)
         if ok.sum() > 0:
             axes[1].errorbar(pt[ok], v2[ok], yerr=err[ok],

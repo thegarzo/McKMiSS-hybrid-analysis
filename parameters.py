@@ -92,19 +92,19 @@ BARYONS={
 # But we need to also consider other rapidity windows for analysis.
 RAP_CUTS  ={
     0: [-0.8,0.8], # ALICE midrapidity
-    # 1: [-3.3,-2.1], 
-    # 2: [2.8,5.1],   # VZERO-A
-    # 3: [-3.7,-1.7], # VZERO-C
-    4: [-0.8,-0.4], # ALICE Flow Sub-event A
-    5: [0.4,0.8], # ALICE Flow Sub-event B
+    1: [-0.8,-0.4], # ALICE Flow Sub-event A
+    2: [0.4,0.8], # ALICE Flow Sub-event B
+    # 3: [-3.3,-2.1], 
+    # 4: [2.8,5.1],   # VZERO-A
+    # 5: [-3.7,-1.7], # VZERO-C
 } 
 
 
 RAP_CUTS_ASSIGMENTS  ={
     "ALICE midrapidity": 0,
+    "ALICE Flow Sub-event A": 1,
+    "ALICE Flow Sub-event B": 2,
     # "ALICE backward": 1,
     # "VZERO-A": 2,
     # "VZERO-C": 3,
-    "ALICE Flow Sub-event A": 4,
-    "ALICE Flow Sub-event B": 5,
 } 
