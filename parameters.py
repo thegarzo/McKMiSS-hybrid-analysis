@@ -7,9 +7,9 @@ import numpy as np
 # pT bins: logarithmically spaced from 0.05 to 3.0 GeV.
 # Log spacing gives finer resolution at low pT and coarser bins at high pT 
 # We start at 0.05 GeV since particles below ~50 MeV/c are below the iSS sampling threshold anyway.
-PT_MIN   = 0.05                            # lower edge [GeV]
-PT_MAX   = 5.0                               # upper edge [GeV]
-N_PT     = 50                                # number of bins
+PT_MIN   = 0.1                            # lower edge [GeV]
+PT_MAX   = 4.0                               # upper edge [GeV]
+N_PT     = 20                                # number of bins
 PT_BINS  = np.logspace(np.log10(PT_MIN),
                        np.log10(PT_MAX),
                        N_PT + 1)             # shape (61,) — 60 bin edges
@@ -30,7 +30,7 @@ PT_CENTS_FLOW = np.sqrt(PT_BINS_FLOW[:-1] * PT_BINS_FLOW[1:])
 ALICE_TRACK_SEL = [PT_MIN,50.]
 
 # ── eta bins for dNch/deta vs eta ─────────────────────────────────────
-ETA_BINS  = np.linspace(-5.0, 5.0, 51)   # 120 bins, 0.5 wide
+ETA_BINS  = np.linspace(-2.0, 2.0, 11)   # 120 bins, 0.5 wide
 ETA_CENTS = 0.5 * (ETA_BINS[:-1] + ETA_BINS[1:])
 N_ETA     = len(ETA_CENTS)
 
