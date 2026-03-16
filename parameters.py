@@ -104,7 +104,7 @@ RAP_CUTS_ASSIGMENTS  ={
     "ALICE midrapidity": 0,
     "ALICE Flow Sub-event A": 1,
     "ALICE Flow Sub-event B": 2,
-    # "ALICE backward": 1,
-    # "VZERO-A": 2,
-    # "VZERO-C": 3,
+    # "ALICE backward": 3,
+    # "VZERO-A": 4,
+    # "VZERO-C": 5,
 } 

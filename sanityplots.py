@@ -172,7 +172,7 @@ def plot_avg_pt_cent_CHADs(spectra, plot_path):
 
 ###################################################### PT ###########################################################
 def plot_pt_spectra(spectra, plot_path, species):
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, ax1 = plt.subplots(1, 1, figsize=(6, 5))
 
     colors = cm.plasma(np.linspace(0.1, 0.9, len(spectra)))
 
@@ -182,27 +182,27 @@ def plot_pt_spectra(spectra, plot_path, species):
         err = sp['dN_err']
         ok  = dN > 0
 
-        axes[0].errorbar(pt[ok], dN[ok], yerr=err[ok],
+        ax1.errorbar(pt[ok], dN[ok], yerr=err[ok],
                         fmt='o-', ms=3, color=color,
                         label=f'{label}%  <pT>={sp["mean_pt"]:.3f} GeV')
 
         # also plot scaled by <pT> for shape comparison
-        axes[1].errorbar(pt[ok], dN[ok] / dN[ok].max(), yerr=err[ok] / dN[ok].max(),
-                        fmt='o-', ms=3, color=color, label=f'{label}%')
+        # axes[1].errorbar(pt[ok], dN[ok] / dN[ok].max(), yerr=err[ok] / dN[ok].max(),
+        #                 fmt='o-', ms=3, color=color, label=f'{label}%')
 
-    axes[0].set_yscale('log')
+    ax1.set_yscale('log')
     # axes[0].set_xscale('log')
-    axes[0].set_xlabel(r'$p_T$ (GeV)')
-    axes[0].set_ylabel(r'$\frac{1}{2\pi p_T}\frac{dN}{dy\,dp_T}$ (GeV$^{-2}$)')
-    axes[0].set_title(r'spectra by centrality')
-    axes[0].legend(fontsize=7)
+    ax1.set_xlabel(r'$p_T$ (GeV)')
+    ax1.set_ylabel(r'$\frac{1}{2\pi p_T}\frac{dN}{dy\,dp_T}$ (GeV$^{-2}$)')
+    ax1.set_title(r'spectra by centrality')
+    ax1.legend(fontsize=7)
 
-    axes[1].set_yscale('log')
-    # axes[1].set_xscale('log')
-    axes[1].set_xlabel(r'$p_T$ (GeV)')
-    axes[1].set_ylabel('Normalised yield')
-    axes[1].set_title(r' shape comparison')
-    axes[1].legend(fontsize=7)
+    # axes[1].set_yscale('log')
+    # # axes[1].set_xscale('log')
+    # axes[1].set_xlabel(r'$p_T$ (GeV)')
+    # axes[1].set_ylabel('Normalised yield')
+    # axes[1].set_title(r' shape comparison')
+    # axes[1].legend(fontsize=7)
 
     plt.tight_layout()
     plt.savefig(plot_path+'/spectra_'+species+ '.pdf')
