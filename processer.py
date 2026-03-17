@@ -5,6 +5,22 @@ import sys
 from parameters import *
 import kinematics as kn
 
+def find_ersatz(filenames, ifile):
+    found=False
+    ersatz=''
+    for iers in np.arange(ifile+1):
+        if filenames[ifile-iers]!="empty_event":
+            ersatz=filenames[ifile-iers]
+            found =True 
+            break
+    iers=0
+    while found ==False:
+        iers+=1 
+        if filenames[ifile+iers]!="empty_event":
+            ersatz=filenames[ifile-iers]
+            found =True 
+    return ersatz
+            
 def ratio_error(A,dA,B,dB):
     R=A/B
     err2 = np.power(dA/B,2.0) +  np.power(R*dB/B,2.0) 
@@ -83,57 +99,107 @@ def first_pass_centrality(filenames, irap_cent,
     n_events_per_file = []
 
     for ifile, fname in enumerate(filenames):
-        try:
-            with h5py.File(fname, 'r') as f:
+        if fname=="empty_event":
+            # find the last available
+            fname_ersatz=find_ersatz(filenames,ifile)
+            
+            with h5py.File(fname_ersatz, 'r') as f:
 
-                # ── validate rapidity window ───────────────────────────────
-                rap_cuts = f['metadata'].attrs['rap_cuts']  # shape (n_rap, 2)
+                    # ── validate rapidity window ───────────────────────────────
+                    rap_cuts = f['metadata'].attrs['rap_cuts']  # shape (n_rap, 2)
 
-                if irap_cent >= len(rap_cuts):
-                    raise ValueError(
-                        f"irap_cent={irap_cent} out of range: file {fname} "
-                        f"has {len(rap_cuts)} rapidity cuts:\n{rap_cuts}"
-                    )
-
-                this_rap_window = list(rap_cuts[irap_cent])
-
-                if rap_window is None:
-                    rap_window = this_rap_window
-                    print(f"Centrality estimator : '{charged_key}'")
-                    print(f"Rapidity window      : [{rap_window[0]:.2f}, "
-                        f"{rap_window[1]:.2f}]  (irap={irap_cent})")
-                else:
-                    if not np.allclose(rap_window, this_rap_window, atol=1e-4):
+                    if irap_cent >= len(rap_cuts):
                         raise ValueError(
-                            f"RAP_CUTS mismatch at irap={irap_cent}: "
-                            f"expected {rap_window}, got {this_rap_window} "
-                            f"in {fname}."
+                            f"irap_cent={irap_cent} out of range: file {fname} "
+                            f"has {len(rap_cuts)} rapidity cuts:\n{rap_cuts}"
                         )
 
-                # ── validate charged species exists ────────────────────────
-                path = f'particles/{charged_key}/N_pt'
-                if path not in f:
-                    available = list(f['particles'].keys())
-                    raise KeyError(
-                        f"'{charged_key}' not found in {fname}. "
-                        f"Available species: {available}"
-                    )
+                    this_rap_window = list(rap_cuts[irap_cent])
 
-                # ── read N_pt for this rapidity cut only ───────────────────
-                # Shape: (n_samp, n_rap, n_pt) -> select irap, sum over pT
-                N_ch   = f[path][:, irap_cent, :].sum(axis=-1).astype(np.int32)
-                n_samp = len(N_ch)
+                    if rap_window is None:
+                        rap_window = this_rap_window
+                        print(f"Centrality estimator : '{charged_key}'")
+                        print(f"Rapidity window      : [{rap_window[0]:.2f}, "
+                            f"{rap_window[1]:.2f}]  (irap={irap_cent})")
+                    else:
+                        if not np.allclose(rap_window, this_rap_window, atol=1e-4):
+                            raise ValueError(
+                                f"RAP_CUTS mismatch at irap={irap_cent}: "
+                                f"expected {rap_window}, got {this_rap_window} "
+                                f"in {fname}."
+                            )
 
-                all_N_ch.append(N_ch)
-                all_file_index.append(np.full(n_samp, ifile, dtype=np.int32))
-                all_event_index.append(np.arange(n_samp,     dtype=np.int32))
-                n_events_per_file.append(n_samp)
+                    # ── validate charged species exists ────────────────────────
+                    path = f'particles/{charged_key}/N_pt'
+                    if path not in f:
+                        available = list(f['particles'].keys())
+                        raise KeyError(
+                            f"'{charged_key}' not found in {fname}. "
+                            f"Available species: {available}"
+                        )
 
-        except Exception as e:
-            print(f"Error opening file: {fname}")
-            print(f"Error message: {e}")
-            # optionally continue to next file or raise
-            continue
+                    # ── read N_pt for this rapidity cut only ───────────────────
+                    # Shape: (n_samp, n_rap, n_pt) -> select irap, sum over pT
+                    N_ch   = f[path][:, irap_cent, :].sum(axis=-1).astype(np.int32)
+                    n_samp = len(N_ch)
+
+                    all_N_ch.append(0*N_ch)
+                    all_file_index.append(np.full(n_samp, ifile, dtype=np.int32))
+                    all_event_index.append(np.arange(n_samp,     dtype=np.int32))
+                    n_events_per_file.append(n_samp)
+
+        else:
+            try:
+                with h5py.File(fname, 'r') as f:
+
+                    # ── validate rapidity window ───────────────────────────────
+                    rap_cuts = f['metadata'].attrs['rap_cuts']  # shape (n_rap, 2)
+
+                    if irap_cent >= len(rap_cuts):
+                        raise ValueError(
+                            f"irap_cent={irap_cent} out of range: file {fname} "
+                            f"has {len(rap_cuts)} rapidity cuts:\n{rap_cuts}"
+                        )
+
+                    this_rap_window = list(rap_cuts[irap_cent])
+
+                    if rap_window is None:
+                        rap_window = this_rap_window
+                        print(f"Centrality estimator : '{charged_key}'")
+                        print(f"Rapidity window      : [{rap_window[0]:.2f}, "
+                            f"{rap_window[1]:.2f}]  (irap={irap_cent})")
+                    else:
+                        if not np.allclose(rap_window, this_rap_window, atol=1e-4):
+                            raise ValueError(
+                                f"RAP_CUTS mismatch at irap={irap_cent}: "
+                                f"expected {rap_window}, got {this_rap_window} "
+                                f"in {fname}."
+                            )
+
+                    # ── validate charged species exists ────────────────────────
+                    path = f'particles/{charged_key}/N_pt'
+                    if path not in f:
+                        available = list(f['particles'].keys())
+                        raise KeyError(
+                            f"'{charged_key}' not found in {fname}. "
+                            f"Available species: {available}"
+                        )
+
+                    # ── read N_pt for this rapidity cut only ───────────────────
+                    # Shape: (n_samp, n_rap, n_pt) -> select irap, sum over pT
+                    N_ch   = f[path][:, irap_cent, :].sum(axis=-1).astype(np.int32)
+                    n_samp = len(N_ch)
+
+                    all_N_ch.append(N_ch)
+                    all_file_index.append(np.full(n_samp, ifile, dtype=np.int32))
+                    all_event_index.append(np.arange(n_samp,     dtype=np.int32))
+                    n_events_per_file.append(n_samp)
+
+            except Exception as e:
+                print(f"Error opening file: {fname}")
+                print(f"Error message: {e}")
+                # optionally continue to next file or raise
+                continue
         if (ifile + 1) % 50 == 0 or (ifile + 1) == len(filenames):
             print(f"  {ifile+1}/{len(filenames)} files, "
                   f"{sum(n_events_per_file)} sampling events ...")
@@ -158,6 +224,7 @@ def first_pass_centrality(filenames, irap_cent,
     print(f"  dNch/deta  mean       : {dNch_deta.mean():.1f}")
     print(f"  dNch/deta  min        : {dNch_deta.min():.1f}")
     print(f"  dNch/deta  max        : {dNch_deta.max():.1f}")
+    print(f" ")
 
     return {
         'dNch_deta':          dNch_deta,
@@ -313,25 +380,46 @@ def compute_dNch_deta(masks, records, species='charged_hadrons'):
     eta_bins = eta_cents = None
     offset   = 0
 
-    for fname in files:
-        with h5py.File(fname, 'r') as f:
-            if eta_bins is None:
-                eta_bins  = f['metadata'].attrs['eta_bins']
-                eta_cents = f['metadata'].attrs['eta_cents']
+    for ifile, fname in enumerate(files):
+        if fname == "empty_event":
+            fname_ersatz=find_ersatz(files,ifile)
+            with h5py.File(fname_ersatz, 'r') as f:
+                if eta_bins is None:
+                    eta_bins  = f['metadata'].attrs['eta_bins']
+                    eta_cents = f['metadata'].attrs['eta_cents']
 
-            N_eta  = f[f'particles/{species}/N_eta'][:]   # (n_samp, N_ETA)
-            n_samp = N_eta.shape[0]
-            file_slice = slice(offset, offset + n_samp)
+                N_eta  = 0*f[f'particles/{species}/N_eta'][:]   # (n_samp, N_ETA)
+                n_samp = N_eta.shape[0]
+                file_slice = slice(offset, offset + n_samp)
 
-            for lab in labels:
-                local_mask = masks[lab][file_slice]
-                n_sel      = local_mask.sum()
-                if n_sel == 0:
-                    continue
-                if acc_Neta[lab] is None:
-                    acc_Neta[lab] = np.zeros(N_eta.shape[1], dtype=np.float64)
-                acc_Neta[lab] += N_eta[local_mask].sum(axis=0)
-                n_events[lab] += n_sel
+                for lab in labels:
+                    local_mask = masks[lab][file_slice]
+                    n_sel      = local_mask.sum()
+                    if n_sel == 0:
+                        continue
+                    if acc_Neta[lab] is None:
+                        acc_Neta[lab] = np.zeros(N_eta.shape[1], dtype=np.float64)
+                    acc_Neta[lab] += N_eta[local_mask].sum(axis=0)
+                    n_events[lab] += n_sel
+        else: 
+            with h5py.File(fname, 'r') as f:
+                if eta_bins is None:
+                    eta_bins  = f['metadata'].attrs['eta_bins']
+                    eta_cents = f['metadata'].attrs['eta_cents']
+
+                N_eta  = f[f'particles/{species}/N_eta'][:]   # (n_samp, N_ETA)
+                n_samp = N_eta.shape[0]
+                file_slice = slice(offset, offset + n_samp)
+
+                for lab in labels:
+                    local_mask = masks[lab][file_slice]
+                    n_sel      = local_mask.sum()
+                    if n_sel == 0:
+                        continue
+                    if acc_Neta[lab] is None:
+                        acc_Neta[lab] = np.zeros(N_eta.shape[1], dtype=np.float64)
+                    acc_Neta[lab] += N_eta[local_mask].sum(axis=0)
+                    n_events[lab] += n_sel
 
         offset += n_samp
 
@@ -358,7 +446,7 @@ def compute_dNch_deta(masks, records, species='charged_hadrons'):
 
 
 
-def compute_spectra(records,masks, irap, species='pi_plus'):
+def compute_spectra_naive(records,masks, irap, species='pi_plus'):
     """
     Compute pT spectra per centrality class.
 
@@ -390,6 +478,44 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
     files = records['filenames']
 
+    labels   = list(masks.keys())
+    n_events = {lab: 0 for lab in labels}
+    pt_cents = orders = None
+    offset   = 0
+
+    # per-event accumulators — store raw per-event quantities,
+    # compute cumulants after loading all files
+    flow_species = {
+        'pions': ['pi_minus','pi_plus'],
+        'kaons': ['kaon_plus','kaon_minus'],
+        'protons': ['proton','anti-proton'],
+        'charged_hadrons': 'charged_hadrons'}
+    acc={}
+    # Let's fill the reference class
+    acc['Ref'] = {lab: {
+        # standard cumulant: midrapidity
+        'M_mid':     [],   # (n_ev,)
+        'Qn_mid':    [],   # (n_ev, n_ord)
+        'Q2n_mid':   [],   # (n_ev, n_ord)  for v2{4}
+        # sub-event A and B
+        'Qn_subA':   [],   # (n_ev, n_ord)
+        'M_subA':    [],
+        'Qn_subB':   [],   # (n_ev, n_ord)
+        'M_subB':    [],
+        } for lab in labels}
+    # now the signal clasws
+    for species in flow_species.keys():
+        acc[species] = {lab: {
+            # pT-differential: signal at midrapidity (coarse grid)
+            'Qn_mid_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_mid_pt':  [],   # (n_ev, n_pt_flow)
+            'Qn_A_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_A_pt':  [],   # (n_ev, n_pt_flow)
+            'Qn_B_pt': [],   # (n_ev, n_pt_flow, n_ord)
+            'M_B_pt':  [],   # (n_ev, n_pt_flow)
+        } for lab in labels}
+
+
     # accumulators per centrality class
     # we accumulate: sum of N_pt and sum of N_pt^2 (for error)
     # and sum of sum_pt — all shape (n_pt,)
@@ -408,67 +534,79 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
     # running event offset to index into the global mask
     offset = 0
 
-    for fname in files:
-        with h5py.File(fname, 'r') as f:
+    
 
-            # read metadata once per file
-            if pt_bins is None:
-                pt_bins    = f['metadata'].attrs['pt_bins']
-                pt_cents   = f['metadata'].attrs['pt_cents']
-                rap_cuts   = f['metadata'].attrs['rap_cuts']
-                rap_window = list(rap_cuts[irap])
+    for ifile, fname in enumerate(files):
+        if fname == "empty_event":
+            fname_ersatz=find_ersatz(files,ifile)
+        else: 
+            fname_ersatz=fname   
+        
+            with h5py.File(fname_ersatz, 'r') as f:
 
-            # load only what we need: N_pt and sum_pt for this species and irap
-            # shape (n_samp, n_rap, n_pt) -> select irap immediately
-            N_pt   = f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
-            sum_pt = f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                # read metadata once per file
+                if pt_bins is None:
+                    pt_bins    = f['metadata'].attrs['pt_bins']
+                    pt_cents   = f['metadata'].attrs['pt_cents']
+                    rap_cuts   = f['metadata'].attrs['rap_cuts']
+                    rap_window = list(rap_cuts[irap])
 
-            n_samp = N_pt.shape[0]
-
-            # slice of the global mask for this file
-            file_slice = slice(offset, offset + n_samp)
-
-            for cent in centralities:
-                local_mask = masks[cent][file_slice]  # boolean (n_samp,)
-                # remember n_sel is events
-                n_sel      = local_mask.sum()
+                # load only what we need: N_pt and sum_pt for this species and irap
+                # shape (n_samp, n_rap, n_pt) -> select irap immediately
+                if fname == "empty_event":
+                    N_pt   = 0*f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
+                    sum_pt = 0*f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                else: 
+                    N_pt   = f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
+                    sum_pt = f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
                 
-                
-                if n_sel == 0:
-                    continue
 
-                N_sel   = N_pt  [local_mask, :]   # (n_sel, n_pt)
-                spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
-                # print
-                # accumulate
-                if acc_N[cent] is None:
-                    acc_N    [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
-                    acc_N2   [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
-                    acc_sumpt[cent]     = 0
-                    acc_sumpt2[cent]    = 0
-                    acc_Ns[cent]        = 0
-                    acc_Ns2[cent]       = 0
+                n_samp = N_pt.shape[0]
+
+                # slice of the global mask for this file
+                file_slice = slice(offset, offset + n_samp)
+
+                for cent in centralities:
+                    local_mask = masks[cent][file_slice]  # boolean (n_samp,)
+                    # remember n_sel is events
+                    n_sel      = local_mask.sum()
                     
-                
-                acc_N    [cent] += N_sel.sum(axis=0) #  (n_pt)
-                # print("acc_N",acc_N[cent])
-                # acc_N2   [cent] += (N_sel.astype(np.float64)**2).sum(axis=0)
-                
-                N_sel_tot=N_sel.sum(axis=1) # (n_sel)
-                # print(cent,"acc_N_tot",N_sel_tot)
-                acc_Ns[cent]+=N_sel_tot.sum() # (float)
-                acc_Ns2[cent]+=sum(N_sel_tot*N_sel_tot) # (float)
-                
-                avg_pt_events=0
-                with np.errstate(divide='ignore', invalid='ignore'):
-                    avg_pt_events= np.divide(spt_sel.sum(axis=1),N_sel_tot)
-                avg_pt_events = np.where(N_sel_tot == 0, 0, avg_pt_events)
-                # avg_pt_events=spt_sel.sum(axis=1)/N_sel_tot
-                acc_sumpt[cent] += np.sum(avg_pt_events)
-                acc_sumpt2[cent] += np.sum(avg_pt_events*avg_pt_events)
-                n_events [cent] += n_sel
-                # print(species, cent, n_sel,avg_pt_events)
-            offset += n_samp
+                    
+                    if n_sel == 0:
+                        continue
+
+                    N_sel   = N_pt  [local_mask, :]   # (n_sel, n_pt)
+                    spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
+                    # print
+                    # accumulate
+                    if acc_N[cent] is None:
+                        acc_N    [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
+                        acc_N2   [cent]     = np.zeros(N_sel.shape[1], dtype=np.float64)
+                        acc_sumpt[cent]     = 0
+                        acc_sumpt2[cent]    = 0
+                        acc_Ns[cent]        = 0
+                        acc_Ns2[cent]       = 0
+                        
+                    
+                    acc_N    [cent] += N_sel.sum(axis=0) #  (n_pt)
+                    # print("acc_N",acc_N[cent])
+                    # acc_N2   [cent] += (N_sel.astype(np.float64)**2).sum(axis=0)
+                    
+                    N_sel_tot=N_sel.sum(axis=1) # (n_sel)
+                    # print(cent,"acc_N_tot",N_sel_tot)
+                    acc_Ns[cent]+=N_sel_tot.sum() # (float)
+                    acc_Ns2[cent]+=sum(N_sel_tot*N_sel_tot) # (float)
+                    
+                    avg_pt_events=0
+                    with np.errstate(divide='ignore', invalid='ignore'):
+                        avg_pt_events= np.divide(spt_sel.sum(axis=1),N_sel_tot)
+                    avg_pt_events = np.where(N_sel_tot == 0, 0, avg_pt_events)
+                    # avg_pt_events=spt_sel.sum(axis=1)/N_sel_tot
+                    acc_sumpt[cent] += np.sum(avg_pt_events)
+                    acc_sumpt2[cent] += np.sum(avg_pt_events*avg_pt_events)
+                    n_events [cent] += n_sel
+                    # print(species, cent, n_sel,avg_pt_events)
+                offset += n_samp
 
     # ── compute spectra from accumulators ──────────────────────────────
     dpt      = np.diff(pt_bins)                    # bin widths
@@ -503,11 +641,192 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
         # <pT> integrated over all pT bins
         mean_pt   = acc_sumpt[cent] / n_ev
+        print(mean_pt)
         var_pt    = (acc_sumpt2[cent]-np.power(acc_sumpt[cent],2.)/n_ev) / (n_ev-1.)
     
         # error on <pT>: standard error of the mean across events
         # approximated from per-bin variance
         mean_pt_err = np.sqrt(var_pt) 
+        # print(cent, mean_pt, acc_sumpt[cent] , n_ev)
+
+        spectra[cent] = {
+            'pt_cents':    pt_cents,
+            'dN_deta':          dN_deta,
+            'dN_deta_err':      dN_deta_err,
+            'dN':          dN_detadpt,
+            'dN_err':      dN_err,
+            'mean_pt':     float(mean_pt),
+            'mean_pt_err': float(mean_pt_err),
+            'n_events':    n_ev,
+            'rap_window':  rap_window,
+        }
+
+    return spectra
+
+def compute_spectra(records,masks, irap, species='pi_plus'):
+    """
+    Compute pT spectra per centrality class.
+
+    Uses N_pt and sum_pt only — no Q-vectors needed.
+    Opens each file once and accumulates histograms directly.
+
+    Parameters
+    ----------
+    records : dict — output of first_pass_centrality(), provides the
+              canonical file order that was used to build the masks.
+              This guarantees the offset indexing into the global mask
+              is consistent with how the mask was constructed.
+    masks   : dict {label: boolean np.ndarray} — from make_centrality_masks()
+    irap    : int — rapidity window index for the spectrum
+    species : str — particle species key in HDF5
+
+    Returns
+    -------
+    spectra : dict {label: {
+                'pt_cents'   : np.ndarray (n_pt,)  — pT bin centres [GeV]
+                'dN'         : np.ndarray (n_pt,)  — dN/dydpT / (2pi pT)
+                'dN_err'     : np.ndarray (n_pt,)  — statistical error
+                'mean_pt'    : float               — <pT> integrated
+                'mean_pt_err': float
+                'n_events'   : int
+                'rap_window' : [rap_min, rap_max]
+             }}
+    """
+
+    files = records['filenames']
+
+    centralities  = list(masks.keys())
+    n_events = {cent: 0 for cent in centralities}
+
+    # per-event accumulators — store raw per-event quantities,
+    # compute cumulants after loading all files
+    acc={}
+    # Let's fill the reference class
+    acc['Ref'] = {cent: {
+        # standard cumulant: midrapidity
+        'N_tot':    [],   # (n_ev, n_samp)
+        'N_pt':     [],   # (n_ev, n_samp, n_pt)
+        # 'sum_pt':   [],   # (n_ev, n_ord)
+        'avg_pt':   [],   # (n_ev, n_ord)  for v2{4}
+        } for cent in centralities}
+    # now the signal clasws
+
+
+    # accumulators per centrality class
+    # we accumulate: sum of N_pt and sum of N_pt^2 (for error)
+    # and sum of sum_pt — all shape (n_pt,)
+    # acc_N           = {cent: None for cent in centralities}  # sum of N_pt over events
+    # acc_N2          = {cent: None for cent in centralities}  # sum of N_pt^2 for variance
+    # acc_sumpt       = {cent: None for cent in centralities}  # sum of sum_pt over events
+    # acc_sumpt2      = {cent: None for cent in centralities}  # sum of sum_pt over events
+    # acc_Ns          = {cent: None for cent in centralities}  # sum of particles (no pt bins)
+    # acc_Ns2         = {cent: None for cent in centralities}  # 
+    # n_events        = {cent: 0    for cent in centralities}
+    pt_bins         = None
+    pt_cents        = None
+    rap_window      = None
+
+    # running event offset to index into the global mask
+    offset = 0
+
+    
+
+    for ifile, fname in enumerate(files):
+        if fname == "empty_event":
+            fname_ersatz=find_ersatz(files,ifile)
+        else: 
+            fname_ersatz=fname   
+        
+            with h5py.File(fname_ersatz, 'r') as f:
+
+                # read metadata once per file
+                if pt_bins is None:
+                    pt_bins    = f['metadata'].attrs['pt_bins']
+                    pt_cents   = f['metadata'].attrs['pt_cents']
+                    rap_cuts   = f['metadata'].attrs['rap_cuts']
+                    rap_window = list(rap_cuts[irap])
+
+                # load only what we need: N_pt and sum_pt for this species and irap
+                # shape (n_samp, n_rap, n_pt) -> select irap immediately
+                if fname == "empty_event":
+                    N_pt   = 0*f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
+                    sum_pt = 0*f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                else: 
+                    N_pt   = f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
+                    sum_pt = f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                
+
+                n_samp = N_pt.shape[0]
+
+                # slice of the global mask for this file
+                file_slice = slice(offset, offset + n_samp)
+
+                for cent in centralities:
+                    local_mask = masks[cent][file_slice]  # boolean (n_samp,)
+                    # remember n_sel is events
+                    n_sel      = local_mask.sum()
+                    
+                    if n_sel == 0:
+                        continue
+
+                    N_sel   = N_pt[local_mask, :]   # (n_sel, n_pt)
+                    N_tot   = N_sel.sum(axis=1)   # (n_sel, n_pt)
+                    spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
+                    spt_sel_tot= spt_sel.sum(axis=1)
+                    # print
+                    # accumulate
+                    # print(cent, " test")
+                    # print(spt_sel.shape , N_sel.shape)
+                    # print(spt_sel_tot.shape , N_tot.shape)
+                    
+                    acc['Ref'][cent]['N_pt'].append(N_sel)
+                    acc['Ref'][cent]['N_tot'].append(N_tot)
+                    
+                    avg_pt_t = np.where(N_tot > 0, spt_sel_tot / N_tot, 0)
+                    acc['Ref'][cent]['avg_pt'].append(avg_pt_t)
+                    # if N_tot>0:
+                    #     acc['Ref'][cent]['avg_pt'].append(spt_sel_tot/float(N_tot))
+                    # else:
+                    #     acc['Ref'][cent]['avg_pt'].append(np.zeros(len(N_tot)))
+                
+                    n_events [cent] += n_sel
+                    # print(species, cent, n_sel,avg_pt_events)
+                offset += n_samp
+
+    # ── compute spectra from accumulators ──────────────────────────────
+    dpt      = np.diff(pt_bins)                    # bin widths
+    rap_min  = rap_window[0]
+    rap_max  = rap_window[1]
+    deta       = rap_max - rap_min                   # rapidity window width
+    # print(pt_cents)
+    spectra = {}
+    for cent in centralities:
+        # print(acc_sumpt[cent],n_events[cent])
+        n_ev = n_events[cent]
+        if n_ev == 0:
+            print(f"  Warning: no events in centrality {cent}%, skipping.")
+            continue
+# = np.concatenate(acc['Ref'][lab]['M_subA']).astype(float)
+        N_total_ev   =  np.concatenate(acc['Ref'][cent]['N_tot'], axis=0) # (nevs,n_pt)
+        N_pt_ev   =  np.concatenate(acc['Ref'][cent]['N_pt'], axis=0) # (nevs,n_pt)
+        avg_pt_ev   =  np.concatenate(acc['Ref'][cent]['avg_pt'], axis=0) # (nevs,n_pt)
+        # print(N_total_ev.shape)
+        # print(N_pt_ev.shape)
+        # print(avg_pt_ev.shape)
+        # exit()
+        # dNdeta averaged over events
+        dN_eta_ev = N_total_ev / deta
+        dN_deta  =  np.mean(dN_eta_ev) 
+        dN_deta_err = bootstrap_error_simple(dN_eta_ev)
+
+        # spectrum: (1/2pi pT) dN/deta dpT averaged over events
+        dN_detadpt_ev =N_pt_ev/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
+        dN_detadpt  = np.mean(dN_detadpt_ev,axis=0)
+        dN_err    = bootstrap_error(dN_detadpt_ev, statistic=np.mean, n_boot=200,axis=0)
+
+        # <pT> integrated over all pT bins
+        mean_pt   = np.mean(avg_pt_ev) 
+        mean_pt_err = bootstrap_error_simple(avg_pt_ev)
         # print(cent, mean_pt, acc_sumpt[cent] , n_ev)
 
         spectra[cent] = {
@@ -849,118 +1168,126 @@ def compute_flow_cumulants(masks, records,
     # print(f"  Signal species  : {species}  irap_mid={irap_mid}")
     # print(f"  Sub-event A     : {ref_species}  irap_subA={irap_subA}")
     # print(f"  Sub-event B     : {ref_species}  irap_subB={irap_subB}")
+    for ifile, fname in enumerate(files):
+        if fname == "empty_event":
+            fname_ersatz=find_ersatz(files,ifile)
+        else: 
+            fname_ersatz=fname   
 
-    for fname in files:
-        with h5py.File(fname, 'r') as f:
-            rap_cuts = f['metadata'].attrs['rap_cuts']
-            # print("rap_cuts in FILE:")
-            # for i, cut in enumerate(rap_cuts):
-                # print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
-            # NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
-            # NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
-            
-            # print(f"Sub-event A  mean N = {NA.mean():.2f}  max = {NA.max():.0f}")
-            # print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
-
-            if pt_cents is None:
-                pt_cents  = f['metadata'].attrs['pt_cents_flow']
-                orders    = list(f['metadata'].attrs['orders'])
-                n_pt      = len(pt_cents)
-                n_ord     = len(orders)
-
-            Qn_mid_pt_r = {}
-            Qn_mid_pt_i = {}
-            M_mid_pt    ={}
-
-            Qn_A_pt_r = {}
-            Qn_A_pt_i = {}
-            M_A_pt    = {}
-
-            Qn_B_pt_r = {}
-            Qn_B_pt_i = {}
-            M_B_pt    = {}
-
-            # ── midrapidity signal ─────────────────────────────────────
-            # integrated: sum over pT bins -> (n_samp, n_ord)
-
-            Qn_mid_r = f[f'particles/{ref_species}/Qn_real'] [:, irap_mid, :, :].sum(axis=1)
-            Qn_mid_i  = f[f'particles/{ref_species}/Qn_imag'] [:, irap_mid, :, :].sum(axis=1)
-            Q2n_mid_r = f[f'particles/{ref_species}/Q2n_real'][:, irap_mid, :, :].sum(axis=1)
-            Q2n_mid_i = f[f'particles/{ref_species}/Q2n_imag'][:, irap_mid, :, :].sum(axis=1)
-            M_mid     = f[f'particles/{ref_species}/N_pt_flow']    [:, irap_mid, :].sum(axis=1)
-
-            # ── sub-event A ────────────────────────────────────────────
-            Qn_subA_r = f[f'particles/{ref_species}/Qn_real'][:, irap_subA, :, :].sum(axis=1)
-            Qn_subA_i = f[f'particles/{ref_species}/Qn_imag'][:, irap_subA, :, :].sum(axis=1)
-            M_subA    = f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subA, :].sum(axis=1)
-
-            # ── sub-event B ────────────────────────────────────────────
-            Qn_subB_r = f[f'particles/{ref_species}/Qn_real'][:, irap_subB, :, :].sum(axis=1)
-            Qn_subB_i = f[f'particles/{ref_species}/Qn_imag'][:, irap_subB, :, :].sum(axis=1)
-            M_subB    = f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subB, :].sum(axis=1)
-            
-            for particle in flow_species.keys():
-                if particle=='charged_hadrons':
-                    species=flow_species[particle]
-                    Qn_mid_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_mid, :, :]
-                    Qn_mid_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_mid, :, :]
-                    M_mid_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_mid, :, ]
-
-                    Qn_A_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_subA, :, :]
-                    Qn_A_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_subA, :, :]
-                    M_A_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_subA, :, ]
-
-                    Qn_B_pt_r [particle]= f[f'particles/{species}/Qn_real'][:, irap_subB, :, :]
-                    Qn_B_pt_i [particle]= f[f'particles/{species}/Qn_imag'][:, irap_subB, :, :]
-                    M_B_pt    [particle]= f[f'particles/{species}/N_pt_flow']   [:, irap_subB, :, ]
-
-                else:
-                    species=flow_species[particle]
-                    Qn_mid_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_mid, :, :]
-                    Qn_mid_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_mid, :, :]
-                    M_mid_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_mid, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_mid, :, ]
-
-                    Qn_A_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subA, :, :]
-                    Qn_A_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subA, :, :]
-                    M_A_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subA, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subA, :, ]
-
-                    Qn_B_pt_r [particle]= f[f'particles/{species[0]}/Qn_real'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subB, :, :]
-                    Qn_B_pt_i [particle]= f[f'particles/{species[0]}/Qn_imag'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subB, :, :]
-                    M_B_pt    [particle]= f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subB, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subB, :, ]
-
-                    
-
-            n_samp     = M_mid.shape[0]
-            file_slice = slice(offset, offset + n_samp)
-
-            for lab in labels:
-                local_mask = masks[lab][file_slice]
-                if local_mask.sum() == 0:
-                    continue
-
-                acc['Ref'][lab]['M_mid'].append(M_mid[local_mask])
-                acc['Ref'][lab]['Qn_mid'].append(Qn_mid_r[local_mask] + 1j * Qn_mid_i[local_mask])
-                acc['Ref'][lab]['Q2n_mid'].append(Q2n_mid_r[local_mask] + 1j * Q2n_mid_i[local_mask])
-
-                acc['Ref'][lab]['Qn_subA'].append(Qn_subA_r[local_mask] + 1j * Qn_subA_i[local_mask])
-                acc['Ref'][lab]['M_subA'].append(M_subA[local_mask])
+            with h5py.File(fname_ersatz, 'r') as f:
+                rap_cuts = f['metadata'].attrs['rap_cuts']
+                # print("rap_cuts in FILE:")
+                # for i, cut in enumerate(rap_cuts):
+                    # print(f"  irap={i}  [{cut[0]:.2f}, {cut[1]:.2f}]")
+                # NA = f['particles/charged_hadrons/N_pt'][:, irap_subA, :].sum(axis=-1)
+                # NB = f['particles/charged_hadrons/N_pt'][:, irap_subB, :].sum(axis=-1)
                 
-                acc['Ref'][lab]['Qn_subB'].append(Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
-                acc['Ref'][lab]['M_subB'].append(M_subB[local_mask])
+                # print(f"Sub-event A  mean N = {NA.mean():.2f}  max = {NA.max():.0f}")
+                # print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
 
+                if pt_cents is None:
+                    pt_cents  = f['metadata'].attrs['pt_cents_flow']
+                    orders    = list(f['metadata'].attrs['orders'])
+                    n_pt      = len(pt_cents)
+                    n_ord     = len(orders)
+
+                Qn_mid_pt_r = {}
+                Qn_mid_pt_i = {}
+                M_mid_pt    ={}
+
+                Qn_A_pt_r = {}
+                Qn_A_pt_i = {}
+                M_A_pt    = {}
+
+                Qn_B_pt_r = {}
+                Qn_B_pt_i = {}
+                M_B_pt    = {}
+
+                # ── midrapidity signal ─────────────────────────────────────
+                # integrated: sum over pT bins -> (n_samp, n_ord)
+                prefactor= np.nan
+                if fname == "empty_event":
+                    prefactor= 0
+                else:
+                    prefactor= 1
+
+                Qn_mid_r = prefactor*f[f'particles/{ref_species}/Qn_real'] [:, irap_mid, :, :].sum(axis=1)
+                Qn_mid_i  = prefactor*f[f'particles/{ref_species}/Qn_imag'] [:, irap_mid, :, :].sum(axis=1)
+                Q2n_mid_r = prefactor*f[f'particles/{ref_species}/Q2n_real'][:, irap_mid, :, :].sum(axis=1)
+                Q2n_mid_i = prefactor*f[f'particles/{ref_species}/Q2n_imag'][:, irap_mid, :, :].sum(axis=1)
+                M_mid     = prefactor*f[f'particles/{ref_species}/N_pt_flow']    [:, irap_mid, :].sum(axis=1)
+
+                # ── sub-event A ────────────────────────────────────────────
+                Qn_subA_r = prefactor*f[f'particles/{ref_species}/Qn_real'][:, irap_subA, :, :].sum(axis=1)
+                Qn_subA_i = prefactor*f[f'particles/{ref_species}/Qn_imag'][:, irap_subA, :, :].sum(axis=1)
+                M_subA    = prefactor*f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subA, :].sum(axis=1)
+
+                # ── sub-event B ────────────────────────────────────────────
+                Qn_subB_r = prefactor*f[f'particles/{ref_species}/Qn_real'][:, irap_subB, :, :].sum(axis=1)
+                Qn_subB_i = prefactor*f[f'particles/{ref_species}/Qn_imag'][:, irap_subB, :, :].sum(axis=1)
+                M_subB    = prefactor*f[f'particles/{ref_species}/N_pt_flow']   [:, irap_subB, :].sum(axis=1)
+                
                 for particle in flow_species.keys():
-                    acc[particle][lab]['Qn_mid_pt'].append(Qn_mid_pt_r[particle][local_mask] + 1j * Qn_mid_pt_i[particle][local_mask])
-                    acc[particle][lab]['M_mid_pt'].append(M_mid_pt[particle][local_mask])
+                    if particle=='charged_hadrons':
+                        species=flow_species[particle]
+                        Qn_mid_pt_r [particle]= prefactor*f[f'particles/{species}/Qn_real'][:, irap_mid, :, :]
+                        Qn_mid_pt_i [particle]= prefactor*f[f'particles/{species}/Qn_imag'][:, irap_mid, :, :]
+                        M_mid_pt    [particle]= prefactor*f[f'particles/{species}/N_pt_flow']   [:, irap_mid, :, ]
 
-                    acc[particle][lab]['Qn_A_pt'].append(Qn_A_pt_r[particle][local_mask] + 1j * Qn_A_pt_i[particle][local_mask])
-                    acc[particle][lab]['M_A_pt'].append(M_A_pt[particle][local_mask])
+                        Qn_A_pt_r [particle]= prefactor*f[f'particles/{species}/Qn_real'][:, irap_subA, :, :]
+                        Qn_A_pt_i [particle]= prefactor*f[f'particles/{species}/Qn_imag'][:, irap_subA, :, :]
+                        M_A_pt    [particle]= prefactor*f[f'particles/{species}/N_pt_flow']   [:, irap_subA, :, ]
 
-                    acc[particle][lab]['Qn_B_pt'].append(Qn_B_pt_r[particle][local_mask] + 1j * Qn_B_pt_i[particle][local_mask])
-                    acc[particle][lab]['M_B_pt'].append(M_B_pt[particle][local_mask])
+                        Qn_B_pt_r [particle]= prefactor*f[f'particles/{species}/Qn_real'][:, irap_subB, :, :]
+                        Qn_B_pt_i [particle]= prefactor*f[f'particles/{species}/Qn_imag'][:, irap_subB, :, :]
+                        M_B_pt    [particle]= prefactor*f[f'particles/{species}/N_pt_flow']   [:, irap_subB, :, ]
 
-                n_events[lab] += local_mask.sum()
+                    else:
+                        species=flow_species[particle]
+                        Qn_mid_pt_r [particle]= prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_mid, :, :]
+                        Qn_mid_pt_i [particle]= prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_mid, :, :]
+                        M_mid_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_mid, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_mid, :, ]
 
-            offset += n_samp
+                        Qn_A_pt_r [particle]= prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subA, :, :]
+                        Qn_A_pt_i [particle]= prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subA, :, :]
+                        M_A_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subA, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subA, :, ]
+
+                        Qn_B_pt_r [particle]= prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subB, :, :]
+                        Qn_B_pt_i [particle]= prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subB, :, :]
+                        M_B_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subB, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subB, :, ]
+
+                        
+                n_samp     = M_mid.shape[0]
+                file_slice = slice(offset, offset + n_samp)
+
+                for lab in labels:
+                    local_mask = masks[lab][file_slice]
+                    if local_mask.sum() == 0:
+                        continue
+
+                    acc['Ref'][lab]['M_mid'].append(M_mid[local_mask])
+                    acc['Ref'][lab]['Qn_mid'].append(Qn_mid_r[local_mask] + 1j * Qn_mid_i[local_mask])
+                    acc['Ref'][lab]['Q2n_mid'].append(Q2n_mid_r[local_mask] + 1j * Q2n_mid_i[local_mask])
+
+                    acc['Ref'][lab]['Qn_subA'].append(Qn_subA_r[local_mask] + 1j * Qn_subA_i[local_mask])
+                    acc['Ref'][lab]['M_subA'].append(M_subA[local_mask])
+                    
+                    acc['Ref'][lab]['Qn_subB'].append(Qn_subB_r[local_mask] + 1j * Qn_subB_i[local_mask])
+                    acc['Ref'][lab]['M_subB'].append(M_subB[local_mask])
+
+                    for particle in flow_species.keys():
+                        acc[particle][lab]['Qn_mid_pt'].append(Qn_mid_pt_r[particle][local_mask] + 1j * Qn_mid_pt_i[particle][local_mask])
+                        acc[particle][lab]['M_mid_pt'].append(M_mid_pt[particle][local_mask])
+
+                        acc[particle][lab]['Qn_A_pt'].append(Qn_A_pt_r[particle][local_mask] + 1j * Qn_A_pt_i[particle][local_mask])
+                        acc[particle][lab]['M_A_pt'].append(M_A_pt[particle][local_mask])
+
+                        acc[particle][lab]['Qn_B_pt'].append(Qn_B_pt_r[particle][local_mask] + 1j * Qn_B_pt_i[particle][local_mask])
+                        acc[particle][lab]['M_B_pt'].append(M_B_pt[particle][local_mask])
+
+                    n_events[lab] += local_mask.sum()
+
+                offset += n_samp
 
     # ── compute cumulants ──────────────────────────────────────────────
     results = {}
@@ -1185,3 +1512,94 @@ def _bootstrap_rat(rat, ref_norm, n_boot=200):
         for _ in range(n_boot)
     ])
     return np.nanstd(boot)
+
+def bootstrap_error(data, statistic=np.mean, n_boot=200,axis=0):
+    """
+    Compute bootstrap error for 2D array, reducing along specified axis.
+    
+    Parameters
+    ----------
+    data : np.ndarray, shape (N, M)
+        Input 2D array
+    axis : int
+        Axis to compute statistic along (0 or 1)
+        - axis=0: resample rows, compute along columns
+        - axis=1: resample columns, compute along rows
+    statistic : callable
+        Function to compute (default: np.mean)
+    n_boot : int
+        Number of bootstrap samples
+    
+    Returns
+    -------
+    error : np.ndarray
+        Error for each element after reduction
+    
+    Examples
+    --------
+    >>> data.shape = (1000, 50)  # 1000 events, 50 pT bins
+    >>> err = bootstrap_error_axis(data, axis=0)  # Error per pT bin
+    >>> err.shape = (50,)
+    """
+    n = data.shape[1 - axis]  # Size of axis to resample
+    
+    # Determine output shape
+    if axis == 0:
+        out_shape = data.shape[1]
+    else:
+        out_shape = data.shape[0]
+    
+    boot_samples = np.zeros((n_boot, out_shape))
+    
+    for ib in range(n_boot):
+        # Resample along the specified axis
+        idx = np.random.randint(0, n, n)
+        
+        if axis == 0:
+            resampled = data[idx, :]
+        else:
+            resampled = data[:, idx]
+        
+        # Compute statistic along that axis
+        boot_samples[ib] = statistic(resampled, axis=axis)
+    
+    # Error = std across bootstrap samples
+    return np.nanstd(boot_samples, axis=0)
+
+
+def bootstrap_error_simple(data, statistic=np.mean, n_boot=200):
+    """
+    Compute bootstrap error on any statistic.
+    
+    Parameters
+    ----------
+    data : np.ndarray
+        Input data array
+    statistic : callable
+        Function to compute statistic (default: np.mean)
+        Examples: np.mean, np.median, np.std
+    n_boot : int
+        Number of bootstrap samples (default: 200)
+    
+    Returns
+    -------
+    error : float
+        Standard deviation of bootstrap samples
+    
+    Examples
+    --------
+    >>> data = np.array([1, 2, 3, 4, 5])
+    >>> err = bootstrap_error(data)  # Error on mean
+    >>> err_median = bootstrap_error(data, np.median)
+    >>> err_std = bootstrap_error(data, np.std)
+    """
+    n = len(data)
+    boot_samples = np.zeros(n_boot)
+    
+    for ib in range(n_boot):
+        # Resample with replacement
+        idx = np.random.randint(0, n, n)
+        boot_samples[ib] = statistic(data[idx])
+    
+    # Error = std dev of bootstrap samples
+    return np.nanstd(boot_samples)

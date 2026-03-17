@@ -25,6 +25,7 @@ def main():
     output_dir          = sys.argv[2]
     EventPaths = ps.Parser(base_path)
     files   = EventPaths.get_all_h5_paths()
+
     # print(files)
 
     sanity_dir= output_dir+"/SanityPlots"
@@ -36,9 +37,6 @@ def main():
     irap= RAP_CUTS_ASSIGMENTS["ALICE midrapidity"]
     print("irap=",irap)
     records = pr.first_pass_centrality(files, irap_cent=irap)
-
-
-    print(records['dNch_deta'])
     # quick look at the distribution
 
     # make centrality masks and print info about the bins

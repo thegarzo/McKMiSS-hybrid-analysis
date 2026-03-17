@@ -18,6 +18,7 @@ class Parser:
     def __init__(self, base_path: str):
         self.base_path = base_path
         self.events: Dict[int, Dict[str, int]] = {}
+        self.events: Dict[int, Dict[str, int]] = {}
         self.scan()
 
     def scan(self):
@@ -46,8 +47,17 @@ class Parser:
             h5_path =self.find_h5_file(entry.path+"/MUSIC")
 
             if h5_path is None:
+                self.events[event_id] = {
+                    "campaignID": campaign_id,
+                    "clusterID": cluster_id,
+                    "jobID": job_id,
+                    "UID": unique_id,
+                    "ran": is_run_complete,
+                    "folder_path": entry.path,
+                    "h5_path": "empty_event"
+                }
                 skipped += 1
-                continue
+                event_id += 1
             else:
                 
                 self.events[event_id] = {
@@ -60,8 +70,9 @@ class Parser:
                     "h5_path": h5_path
                 }
                 event_id += 1
-        print("Skipped n = " +str( skipped)+  ' files')
+        print("Empty events n = " +str(skipped)+  ' files')
         print("Catalogued n = " +str(event_id)+  ' files')
+        print("Empty events are n = " +f'{100*float(skipped)/float(event_id):.2f}' +  ' percent of files')
     
     def get_event_folder(self, event_id: int):
         """
