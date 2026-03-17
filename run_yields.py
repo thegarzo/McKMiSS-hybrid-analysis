@@ -62,9 +62,9 @@ def main():
         pickle.dump(spectra, f)
 
     ####  PLOT PLOT PLOT PLOT  ####
-    sanity.plot_dNch_eta_cent(spectra,sanity_dir)
-    sanity.plot_avg_pt_cent_CHADs(spectra,sanity_dir)
-    sanity.plot_pt_spectra(spectra,sanity_dir,"charged_hadrons")
+    # sanity.plot_dNch_eta_cent(spectra,sanity_dir)
+    # sanity.plot_avg_pt_cent_CHADs(spectra,sanity_dir)
+    # sanity.plot_pt_spectra_CHADs(spectra,sanity_dir,"charged_hadrons")
     # sanity.plot_pt_spectra(spectra,sanity_dir,"pi_plus")
     # sanity.plot_pt_spectra(spectra,sanity_dir,"kaon_plus")
     # sanity.plot_pt_spectra(spectra,sanity_dir,"proton")
