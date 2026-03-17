@@ -42,7 +42,7 @@ def main():
     # quick look at the distribution
 
     # make centrality masks and print info about the bins
-    bin_edges=[0,2.5, 5, 7.5, 10, 20, 30, 40, 50, 60, 70, 80, 100]
+    bin_edges=[0,2.5, 5, 7.5, 10,15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 80, 100]
     mask, infos = pr.make_centrality_masks(records, bins_percentile=bin_edges)
 
     ####  PLOT PLOT PLOT PLOT  ####
