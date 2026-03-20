@@ -79,6 +79,7 @@ def main():
     sanity.plot_pt_spectra(spectra,sanity_dir,"kaon_plus")
     sanity.plot_pt_spectra(spectra,sanity_dir,"proton")
 
+    spectra.clear()
     ####  PLOT PLOT PLOT PLOT  ####
 
     ## Flow 
@@ -104,6 +105,7 @@ def main():
     ####  PLOT PLOT PLOT PLOT  ####
     sanity.plot_flows(flow,sanity_dir)
     ####  PLOT PLOT PLOT PLOT  ####
+    flow.clear()
 
 if __name__ == "__main__":
     main()
