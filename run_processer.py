@@ -34,7 +34,7 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
 
     with open(data_dir+'/n_files_run.txt', 'w') as f:
-        f.write(len(files))
+        f.write(str(len(files)))
     
     #assign selection method
     irap= RAP_CUTS_ASSIGMENTS["ALICE midrapidity"]
