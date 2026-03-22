@@ -10,7 +10,7 @@ import numpy as np
                               # upper edge [GeV]
 
 PT_BINS  = np.array([0.1,0.5,0.75,1.0,1.4,1.8,2.2,2.4,2.6,3.0,4.0,5.0])
-N_PT     = len(PT_BINS)
+N_PT     = len(PT_BINS)-1
 PT_MIN   = PT_BINS[0]                           # lower edge [GeV]
 PT_MAX   = PT_BINS[-1]
 # np.logspace(np.log10(PT_MIN),
@@ -25,7 +25,7 @@ PT_CENTS = (PT_BINS[:-1] + PT_BINS[1:])/2  # geometric centre of each bin
 PT_BINS_FLOW = np.array([0.25,0.5, 0.75, 1.0, 1.4, 1.8, 2.2, 3.0, 4.0, 5.0])
 PT_MIN_FLOW  = PT_BINS_FLOW[0]
 PT_MAX_FLOW  = PT_BINS_FLOW[-1]
-N_PT_FLOW    = len(PT_BINS_FLOW)
+N_PT_FLOW    = len(PT_BINS_FLOW)-1
 # PT_BINS_FLOW = np.logspace(np.log10(PT_MIN_FLOW), np.log10(PT_MAX_FLOW),
 #                            N_PT_FLOW + 1)
 PT_CENTS_FLOW = np.sqrt(PT_BINS_FLOW[:-1] + PT_BINS_FLOW[1:])/2
