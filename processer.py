@@ -5,6 +5,7 @@ import sys
 from parameters import *
 import kinematics as kn
 
+NBoot = 200
 def find_ersatz(filenames, ifile):
     found=False
     ersatz=''
@@ -239,7 +240,6 @@ def first_pass_centrality(filenames, irap_cent,
         'filenames':          filenames,
     }
 
-
 def make_centrality_masks(records, bins_percentile):
     """
     Split sampling events into centrality classes using percentile cuts
@@ -443,8 +443,6 @@ def compute_dNch_deta(masks, records, species='charged_hadrons'):
         }
 
     return results
-
-
 
 def compute_spectra_naive(records,masks, irap, species='pi_plus'):
     """
@@ -700,17 +698,15 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
     # per-event accumulators — store raw per-event quantities,
     # compute cumulants after loading all files
-    acc={}
     # Let's fill the reference class
-    acc['Ref'] = {cent: {
+    acc = {cent: {
         # standard cumulant: midrapidity
         'N_tot':    [],   # (n_ev, n_samp)
         'N_pt':     [],   # (n_ev, n_samp, n_pt)
         # 'sum_pt':   [],   # (n_ev, n_ord)
         'avg_pt':   [],   # (n_ev, n_ord)  for v2{4}
         } for cent in centralities}
-    # now the signal clasws
-
+    # now the signal class
 
     # accumulators per centrality class
     # we accumulate: sum of N_pt and sum of N_pt^2 (for error)
@@ -779,11 +775,11 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     # print(spt_sel.shape , N_sel.shape)
                     # print(spt_sel_tot.shape , N_tot.shape)
                     
-                    acc['Ref'][cent]['N_pt'].append(N_sel)
-                    acc['Ref'][cent]['N_tot'].append(N_tot)
+                    acc[cent]['N_pt'].append(N_sel)
+                    acc[cent]['N_tot'].append(N_tot)
                     
                     avg_pt_t = np.where(N_tot > 0, spt_sel_tot / N_tot, 0)
-                    acc['Ref'][cent]['avg_pt'].append(avg_pt_t)
+                    acc[cent]['avg_pt'].append(avg_pt_t)
                     # if N_tot>0:
                     #     acc['Ref'][cent]['avg_pt'].append(spt_sel_tot/float(N_tot))
                     # else:
@@ -807,26 +803,56 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
             print(f"  Warning: no events in centrality {cent}%, skipping.")
             continue
 # = np.concatenate(acc['Ref'][lab]['M_subA']).astype(float)
-        N_total_ev   =  np.concatenate(acc['Ref'][cent]['N_tot'], axis=0) # (nevs,n_pt)
-        N_pt_ev   =  np.concatenate(acc['Ref'][cent]['N_pt'], axis=0) # (nevs,n_pt)
-        avg_pt_ev   =  np.concatenate(acc['Ref'][cent]['avg_pt'], axis=0) # (nevs,n_pt)
+        # print(len(acc['Ref'][cent]['N_tot']), acc['Ref'][cent]['N_tot'][0].shape )
+        
+        # N_total_ev   =  np.concatenate(acc['Ref'][cent]['N_tot'], axis=0) # (nevs,n_pt)
+        # N_pt_ev   =  np.concatenate(acc['Ref'][cent]['N_pt'], axis=0) # (nevs,n_pt)
+        # avg_pt_ev   =  np.concatenate(acc['Ref'][cent]['avg_pt'], axis=0) # (nevs,n_pt)
+
+        Npacks=len(acc[cent]['N_tot'])
+        Npt= (acc[cent]['N_pt'][0].shape)[1]
+        # print(Npacks,Npt)
+
+        njs = np.array([len(event) for event in acc[cent]['N_tot'] ] )
+        Nev_tot=np.sum(njs)
+        weights = njs/Nev_tot
+        # print(weights)
+        # print(Nev_tot,njs) 
+
+        N_total_ev   = np.zeros(Npacks)
+        N_total_ev_err   = np.zeros(Npacks)
+        N_pt_ev   = np.zeros((Npacks,Npt)) 
+        N_pt_ev_err   = np.zeros((Npacks,Npt)) # acc['Ref'][cent]['N_pt'] # (nevs,n_pt)
+        avg_pt_ev   = np.zeros(Npacks) # (nevs,n_pt)
+        avg_pt_ev_err   = np.zeros(Npacks) #acc['Ref'][cent]['avg_pt'], axis=0) # (nevs,n_pt)
+
+        for i in np.arange(Npacks):
+            N_total_ev[i] = np.mean(acc[cent]['N_tot'][i])
+            N_total_ev_err[i]   = bootstrap_error_simple(acc[cent]['N_tot'][i])
+            N_pt_ev[i]   = np.mean(acc[cent]['N_pt'][i],axis=0)
+            N_pt_ev_err[i]   = bootstrap_error(acc[cent]['N_pt'][i],axis=0)
+            avg_pt_ev[i]   = np.mean(acc[cent]['avg_pt'][i]) # (nevs,n_pt)
+            avg_pt_ev_err[i]  = bootstrap_error_simple(acc[cent]['avg_pt'][i]) #acc['Ref'][cent]['avg_pt'], axis=0) # (nevs,n_pt)
+
         # print(N_total_ev.shape)
         # print(N_pt_ev.shape)
         # print(avg_pt_ev.shape)
         # exit()
         # dNdeta averaged over events
         dN_eta_ev = N_total_ev / deta
-        dN_deta  =  np.mean(dN_eta_ev) 
-        dN_deta_err = bootstrap_error_simple(dN_eta_ev)
+        dN_eta_ev_err = N_total_ev_err / deta
+        dN_deta  =  np.sum(weights*dN_eta_ev) 
+        dN_deta_err =np.sqrt( np.sum(np.power(weights*dN_eta_ev_err,2.)) )
 
         # spectrum: (1/2pi pT) dN/deta dpT averaged over events
         dN_detadpt_ev =N_pt_ev/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
-        dN_detadpt  = np.mean(dN_detadpt_ev,axis=0)
-        dN_err    = bootstrap_error(dN_detadpt_ev, statistic=np.mean, n_boot=200,axis=0)
+        dN_detadpt_ev_err =N_pt_ev/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
+        dN_detadpt  = np.sum(weights[:,np.newaxis]*dN_detadpt_ev,axis=0) 
+        dN_err    = np.sqrt( np.sum(np.power(weights[:,np.newaxis]*dN_detadpt_ev_err,2.),axis=0) ) 
 
         # <pT> integrated over all pT bins
-        mean_pt   = np.mean(avg_pt_ev) 
-        mean_pt_err = bootstrap_error_simple(avg_pt_ev)
+        mean_pt   = np.sum(weights*avg_pt_ev) 
+        mean_pt_err = np.sqrt( np.sum(np.power(weights*avg_pt_ev_err,2.)) ) 
         # print(cent, mean_pt, acc_sumpt[cent] , n_ev)
 
         spectra[cent] = {
@@ -840,7 +866,6 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
             'n_events':    n_ev,
             'rap_window':  rap_window,
         }
-
     return spectra
 
 def compute_flow(masks, records, irap_sig, irap_ref=None,
@@ -965,6 +990,9 @@ def compute_flow(masks, records, irap_sig, irap_ref=None,
         if n_ev == 0:
             print(f"  Warning: no events in centrality {lab}%, skipping.")
             continue
+
+        Npacks=len(acc[lab]['M_sig'])
+        Npt= (acc['Ref'][cent]['N_pt'][0].shape)[1]
 
         # concatenate all selected events
         M_sig    = np.concatenate(acc[lab]['M_sig']).astype(float)    # (n_ev,)
@@ -1297,15 +1325,21 @@ def compute_flow_cumulants(masks, records,
         if n_ev == 0:
             print(f"  Warning: no events in {lab}%, skipping.")
             continue
+        
+        Npacks=len(acc['Ref'][lab]['M_mid'])
+        # print("CABRON ", Npacks)
+        njs = np.array([len(event) for event in acc[cent]['N_tot'] ] )
+        Nev_tot=np.sum(njs)
+        weights = njs/Nev_tot
 
         # concatenate
-        M_mid    = np.concatenate(acc['Ref'][lab]['M_mid']).astype(float)
-        Qn_mid   = np.concatenate(acc['Ref'][lab]['Qn_mid'],    axis=0)  # (n_ev, n_ord)
-        Q2n_mid  = np.concatenate(acc['Ref'][lab]['Q2n_mid'],   axis=0)
-        Qn_subA  = np.concatenate(acc['Ref'][lab]['Qn_subA'],   axis=0)
-        M_subA   = np.concatenate(acc['Ref'][lab]['M_subA']).astype(float)
-        Qn_subB  = np.concatenate(acc['Ref'][lab]['Qn_subB'],   axis=0)
-        M_subB   = np.concatenate(acc['Ref'][lab]['M_subB']).astype(float)
+        M_mid    = acc['Ref'][lab]['M_mid']
+        Qn_mid   = acc['Ref'][lab]['Qn_mid']  # (n_ev, n_ord)
+        Q2n_mid  = acc['Ref'][lab]['Q2n_mid']
+        Qn_subA  = acc['Ref'][lab]['Qn_subA']
+        M_subA   = acc['Ref'][lab]['M_subA']
+        Qn_subB  = acc['Ref'][lab]['Qn_subB']
+        M_subB   = acc['Ref'][lab]['M_subB']
         
         Qn_mid_pt= {} # (n_ev, n_pt, n_ord)
         M_mid_pt = {}  # (n_ev, n_pt)
@@ -1314,13 +1348,32 @@ def compute_flow_cumulants(masks, records,
         Qn_B_pt = {}  # (n_ev, n_pt, n_ord)
         M_B_pt= {}
         for particle in flow_species.keys():
-            Qn_mid_pt[particle]= np.concatenate(acc[particle][lab]['Qn_mid_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-            M_mid_pt[particle] = np.concatenate(acc[particle][lab]['M_mid_pt'],  axis=0)  # (n_ev, n_pt)
-            Qn_A_pt[particle] = np.concatenate(acc[particle][lab]['Qn_A_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-            M_A_pt[particle]= np.concatenate(acc[particle][lab]['M_A_pt'],  axis=0)
-            Qn_B_pt[particle] = np.concatenate(acc[particle][lab]['Qn_B_pt'], axis=0)  # (n_ev, n_pt, n_ord)
-            M_B_pt[particle]= np.concatenate(acc[particle][lab]['M_B_pt'],  axis=0)
+            Qn_mid_pt[particle]= acc[particle][lab]['Qn_mid_pt']  # (n_ev, n_pt, n_ord)
+            M_mid_pt[particle] = acc[particle][lab]['M_mid_pt']  # (n_ev, n_pt)
+            Qn_A_pt[particle] = acc[particle][lab]['Qn_A_pt']  # (n_ev, n_pt, n_ord)
+            M_A_pt[particle]= acc[particle][lab]['M_A_pt']
+            Qn_B_pt[particle] = acc[particle][lab]['Qn_B_pt'] # (n_ev, n_pt, n_ord)
+            M_B_pt[particle]= acc[particle][lab]['M_B_pt']
 
+        # The intermediate compuations
+        Tv2_2     = np.full((Npacks,n_ord), np.nan)
+        Tv2_2_err = np.full((Npacks,n_ord), np.nan)
+        Tv2_2sub  = np.full((Npacks,n_ord), np.nan)
+        Tv2_2sub_err = np.full((Npacks,n_ord), np.nan)
+        Tv2_4     = np.full((Npacks,n_ord), np.nan)
+        Tv2_4_err = np.full((Npacks,n_ord), np.nan)
+
+        Tvn2_pt   = {}
+        Tvn2_pt_err = {}
+        Tvn2_pt_sub   = {}
+        Tvn2_pt_sub_err = {}
+        for particle in flow_species.keys():
+            Tvn2_pt[particle]   = np.full((Npacks, n_pt, n_ord), np.nan)
+            Tvn2_pt_err[particle] = np.full((Npacks, n_pt, n_ord), np.nan)
+            Tvn2_pt_sub[particle]   = np.full((Npacks, n_pt, n_ord), np.nan)
+            Tvn2_pt_sub_err[particle] = np.full((Npacks, n_pt, n_ord), np.nan)
+
+        # The final computations
         v2_2     = np.full(n_ord, np.nan)
         v2_2_err = np.full(n_ord, np.nan)
         v2_2sub  = np.full(n_ord, np.nan)
@@ -1338,36 +1391,49 @@ def compute_flow_cumulants(masks, records,
             vn2_pt_sub[particle]   = np.full((n_pt, n_ord), np.nan)
             vn2_pt_sub_err[particle] = np.full((n_pt, n_ord), np.nan)
 
+        # Let's go
+        c22_bsd = np.full((Npacks,n_ord),0)
+        c22_bsd_err = np.full((Npacks,n_ord),0)
+        c24_bsd = np.full((Npacks,n_ord),0)
+        c24_bsd_err = np.full((Npacks,n_ord),0)
+        d2p_bsd = np.full((Npacks,n_pt,n_ord),0)
+        d2p_bsd_err = np.full((Npacks,n_pt,n_ord),0)
+        # c2_bsd = np.full((Npacks,n_ord),0)
         for io, n in enumerate(orders):
-            Qm  = Qn_mid [:, io]
-            Q2m = Q2n_mid[:, io]
-            QA  = Qn_subA[:, io]
-            QB  = Qn_subB[:, io]
-            M   = M_mid
+            
+            for i in np.arange(Npacks):
+            # N_total_ev[i] = np.mean(acc[cent]['N_tot'][i])
+            # N_total_ev_err[i]   = bootstrap_error_simple(acc[cent]['N_tot'][i])
+                Qm  = Qn_mid [i][:, io]
+                Q2m = Q2n_mid[i][:, io]
+                QA  = Qn_subA[i][:, io]
+                QB  = Qn_subB[i][:, io]
+                M   = M_mid[i]
 
-            # ── standard c2{2} ─────────────────────────────────────
-            # uses only midrapidity particles
-            # self-correlation subtraction: -M removes i==j pairs
-            # denominator M*(M-1) counts all distinct pairs
-            # Ref: Bilandzic PRC 83, 044913 (2011) Eq.(6)
-            ok2  = M >= 4
-            c2_vec  = (np.abs(Qm[ok2])**2 - M[ok2]) / (M[ok2] * (M[ok2] - 1))
-            c2_mean = c2_vec.mean()
-            v2_2[io]     = np.sqrt(max(c2_mean, 0.0))
-            v2_2_err[io] = _bootstrap_v2(c2_vec, kind='2')
+                # ── standard c2{2} ─────────────────────────────────────
+                # uses only midrapidity particles
+                # self-correlation subtraction: -M removes i==j pairs
+                # denominator M*(M-1) counts all distinct pairs
+                # Ref: Bilandzic PRC 83, 044913 (2011) Eq.(6)
+                ok2  = M >= 4
+                c2_vec  = (np.abs(Qm[ok2])**2 - M[ok2]) / (M[ok2] * (M[ok2] - 1))
+                c2_mean = c2_vec.mean()
+                
+                v2_2[io]     = np.sqrt(max(c2_mean, 0.0))
+                v2_2_err[io] = _bootstrap_v2(c2_vec, kind='2')
 
-            # ── sub-event c2{2|AB} ─────────────────────────────────
-            # A from irap_subA, B from irap_subB — different eta windows
-            # so NO self-correlations, denominator is simply M_A * M_B
-            # Ref: Jia PRL 116, 172301 (2016)
-            ok_sub = (M_subA >= 1) & (M_subB >= 1)
-            c2sub_vec = (
-                (QA[ok_sub] * np.conj(QB[ok_sub])).real
-                / (M_subA[ok_sub] * M_subB[ok_sub])
-            )
-            c2sub_mean  = c2sub_vec.mean()
-            v2_2sub[io]     = np.sqrt(max(c2sub_mean, 0.0))
-            v2_2sub_err[io] = _bootstrap_v2(c2sub_vec, kind='2')
+                # ── sub-event c2{2|AB} ─────────────────────────────────
+                # A from irap_subA, B from irap_subB — different eta windows
+                # so NO self-correlations, denominator is simply M_A * M_B
+                # Ref: Jia PRL 116, 172301 (2016)
+                ok_sub = (M_subA >= 1) & (M_subB >= 1)
+                c2sub_vec = (
+                    (QA[ok_sub] * np.conj(QB[ok_sub])).real
+                    / (M_subA[ok_sub] * M_subB[ok_sub])
+                )
+                c2sub_mean  = c2sub_vec.mean()
+                v2_2sub[io]     = np.sqrt(max(c2sub_mean, 0.0))
+                v2_2sub_err[io] = _bootstrap_v2(c2sub_vec, kind='2')
 
             # ── c2{4} ──────────────────────────────────────────────
             # four-particle cumulant from midrapidity
@@ -1489,7 +1555,7 @@ def compute_flow_cumulants(masks, records,
     return results
 
 
-def _bootstrap_v2(c2_vec, kind='2', n_boot=200, four_vec=None, c2_mean=None):
+def _bootstrap_v2(c2_vec, kind='2', n_boot=NBoot , four_vec=None, c2_mean=None):
     """Bootstrap error on vn{2} or vn{4}."""
     n = len(c2_vec)
     boot = np.zeros(n_boot)
@@ -1504,7 +1570,7 @@ def _bootstrap_v2(c2_vec, kind='2', n_boot=200, four_vec=None, c2_mean=None):
     return np.nanstd(boot)
 
 
-def _bootstrap_rat(rat, ref_norm, n_boot=200):
+def _bootstrap_rat(rat, ref_norm, n_boot=NBoot ):
     """Bootstrap error on pT-differential vn{2}."""
     n    = len(rat)
     boot = np.array([
@@ -1513,7 +1579,7 @@ def _bootstrap_rat(rat, ref_norm, n_boot=200):
     ])
     return np.nanstd(boot)
 
-def bootstrap_error(data, statistic=np.mean, n_boot=200,axis=0):
+def bootstrap_error(data, statistic=np.mean, n_boot=NBoot ,axis=0):
     """
     Compute bootstrap error for 2D array, reducing along specified axis.
     
@@ -1541,7 +1607,7 @@ def bootstrap_error(data, statistic=np.mean, n_boot=200,axis=0):
     >>> err = bootstrap_error_axis(data, axis=0)  # Error per pT bin
     >>> err.shape = (50,)
     """
-    n = data.shape[1 - axis]  # Size of axis to resample
+    n = data.shape[axis]  # Size of axis to resample
     
     # Determine output shape
     if axis == 0:
@@ -1567,7 +1633,7 @@ def bootstrap_error(data, statistic=np.mean, n_boot=200,axis=0):
     return np.nanstd(boot_samples, axis=0)
 
 
-def bootstrap_error_simple(data, statistic=np.mean, n_boot=200):
+def bootstrap_error_simple(data, statistic=np.mean, n_boot=NBoot ):
     """
     Compute bootstrap error on any statistic.
     
