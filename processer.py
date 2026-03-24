@@ -768,7 +768,11 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     N_sel   = N_pt[local_mask, :]   # (n_sel, n_pt)
                     N_tot   = N_sel.sum(axis=1)   # (n_sel, n_pt)
                     spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
-                    spt_sel_tot= spt_sel.sum(axis=1)
+                    
+                    N_sel_tot= N_sel[:9].sum(axis=1)
+                    spt_sel_tot= spt_sel[:9].sum(axis=1)
+
+    
                     # print
                     # accumulate
                     # print(cent, " test")
@@ -778,7 +782,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     acc[cent]['N_pt'].append(N_sel)
                     acc[cent]['N_tot'].append(N_tot)
                     
-                    avg_pt_t = np.where(N_tot > 0, spt_sel_tot / N_tot, 0)
+                    avg_pt_t = np.where(N_sel_tot > 0, spt_sel_tot / N_sel_tot, 0)
                     acc[cent]['avg_pt'].append(avg_pt_t)
                     # if N_tot>0:
                     #     acc['Ref'][cent]['avg_pt'].append(spt_sel_tot/float(N_tot))
