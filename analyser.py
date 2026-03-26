@@ -133,7 +133,8 @@ def compute_summary(events):
 
                 avg_pt_mask = (pt >= AVG_PT_BIN[0]) & (pt < AVG_PT_BIN[1])
                 pt_in_avg_cut = pt[avg_pt_mask ]
-                avg_pt[iev, RCUT]= aux.safe_divide( pt_in_avg_cut.sum(),avg_pt_mask.sum()) [0]
+                avg_pt[iev, RCUT]= aux.safe_divide( pt_in_avg_cut.sum(),avg_pt_mask.sum()) 
+                
 
                 if len(pt_fine) > 0:
                     ibin_fine = np.searchsorted(PT_BINS[1:], pt_fine)
@@ -167,7 +168,6 @@ def compute_summary(events):
                         Qn  = np.sum(np.exp( 1j * n * phi_b))
                         Q2n = np.sum(np.exp( 2j * n * phi_b))
                         # pQn = np.sum(pt_b * np.exp(1j * n * phi_b))
-
                         Qn_real [iev, RCUT, ib, io] = Qn.real
                         Qn_imag [iev, RCUT, ib, io] = Qn.imag
                         Q2n_real[iev, RCUT, ib, io] = Q2n.real
