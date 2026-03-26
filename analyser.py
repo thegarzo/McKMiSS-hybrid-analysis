@@ -118,7 +118,20 @@ def compute_summary(events):
                 # ── fine grid: spectra ─────────────────────────────────
                 in_range_fine = (pt >= PT_BINS[0]) & (pt < PT_BINS[-1])
                 pt_fine = pt[in_range_fine]
-                avg_pt_mask = (pt >= AVG_PT_BIN[0]) & (pt < AVG_PT_BIN[-1])
+                AVG_PT_BIN=[]
+                if pdg == 211 or pdg==-211:
+                    AVG_PT_BIN=AVG_PT_BINS['pi']
+                elif pdg == 321 or pdg==-321:
+                    AVG_PT_BIN=AVG_PT_BINS['K']
+                elif pdg == 2212 or pdg==-2212:
+                    AVG_PT_BIN=AVG_PT_BINS['p']
+                elif name =='charged_hadrons':
+                    AVG_PT_BIN=AVG_PT_BINS['charged_hadrons']
+                else:
+                    AVG_PT_BIN=AVG_PT_BINS['rest']
+                
+
+                avg_pt_mask = (pt >= AVG_PT_BIN[0]) & (pt < AVG_PT_BIN[1])
                 pt_in_avg_cut = pt[avg_pt_mask ]
                 avg_pt[iev, RCUT]= aux.safe_divide( pt_in_avg_cut.sum(),avg_pt_mask.sum()) [0]
 
