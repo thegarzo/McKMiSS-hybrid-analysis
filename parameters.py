@@ -9,6 +9,10 @@ import numpy as np
 # We start at 0.05 GeV since particles below ~50 MeV/c are below the iSS sampling threshold anyway.
                               # upper edge [GeV]
 
+AVG_PT_MIN   = 0.1                       # lower edge [GeV]
+AVG_PT_MAX   = 3.0                       # upper edge [GeV]
+AVG_PT_BIN= [AVG_PT_MIN,AVG_PT_MAX]
+
 PT_BINS  = np.array([0.1,0.5,0.75,1.0,1.4,1.8,2.2,2.4,2.6,3.0,4.0,5.0])
 N_PT     = len(PT_BINS)-1
 PT_MIN   = PT_BINS[0]                           # lower edge [GeV]

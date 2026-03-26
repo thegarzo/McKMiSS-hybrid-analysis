@@ -4,8 +4,14 @@ import sys
 
 from parameters import *
 import kinematics as kn
+import auxiliaries as aux
 
-
+def safe_divide(A, B):
+    """
+    Compute A/B where B > 0.
+    Returns 0 where B <= 0.
+    """
+    return np.divide(A, B, where=(B > 0), out=np.zeros_like(A, dtype=float))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Section 1: Q-vector summary computation
@@ -18,7 +24,7 @@ def compute_summary(events):
     For each sampling event and each species we compute:
 
         N_pt    [n_pt]         : particle count per pT bin
-        sum_pt  [n_pt]         : sum of pT values per bin (-> <pT> when divided by N_pt)
+        avg_pt  [scalar]         : sum of pT values per bin (-> <pT> when divided by N_pt)
         Qn_real [n_pt, n_ord]  : Re( sum_j e^{i n phi_j} ) for particles in bin
         Qn_imag [n_pt, n_ord]  : Im( ... )
         Q2n_real[n_pt, n_ord]  : Re( sum_j e^{2i n phi_j} ) — needed for vn{4}
@@ -44,7 +50,7 @@ def compute_summary(events):
     -------
     dict : {species_name: {array_name: np.ndarray}}
         Outer key: species name string (e.g. 'pi_plus').
-        Inner keys: 'N_pt', 'sum_pt', 'Qn_real', 'Qn_imag',
+        Inner keys: 'N_pt', 'avbg_pt', 'Qn_real', 'Qn_imag',
                     'Q2n_real', 'Q2n_imag', 'pQn_real', 'pQn_imag'.
         All arrays have leading dimension n_events (number of sampling events).
     """
@@ -57,7 +63,8 @@ def compute_summary(events):
 
         # fine grid — for spectra
         N_pt      = np.zeros((n_ev, n_rap_cuts, N_PT),             dtype=np.int32)
-        sum_pt    = np.zeros((n_ev, n_rap_cuts, N_PT),             dtype=np.float32)
+        # sum_pt    = np.zeros((n_ev, n_rap_cuts, N_PT),             dtype=np.float32)
+        avg_pt    = np.zeros((n_ev, n_rap_cuts),             dtype=np.float32)
 
         # coarse grid — for flow Q-vectors
         N_pt_flow      = np.zeros((n_ev, n_rap_cuts, N_PT_FLOW), dtype=np.int32)
@@ -111,6 +118,9 @@ def compute_summary(events):
                 # ── fine grid: spectra ─────────────────────────────────
                 in_range_fine = (pt >= PT_BINS[0]) & (pt < PT_BINS[-1])
                 pt_fine = pt[in_range_fine]
+                avg_pt_mask = (pt >= AVG_PT_BIN[0]) & (pt < AVG_PT_BIN[-1])
+                pt_in_avg_cut = pt[avg_pt_mask ]
+                avg_pt[iev, RCUT]= aux.safe_divide( pt_in_avg_cut.sum(),avg_pt_mask.sum()) [0]
 
                 if len(pt_fine) > 0:
                     ibin_fine = np.searchsorted(PT_BINS[1:], pt_fine)
@@ -119,7 +129,7 @@ def compute_summary(events):
                         if not np.any(sel):
                             continue
                         N_pt  [iev, RCUT, ib] = sel.sum()
-                        sum_pt[iev, RCUT, ib] = pt_fine[sel].sum()
+                        # sum_pt[iev, RCUT, ib] = pt_fine[sel].sum()
 
                 # ── coarse grid: flow Q-vectors ────────────────────────
                 in_range_flow = (pt >= PT_BINS_FLOW[0]) & (pt < PT_BINS_FLOW[-1])
@@ -154,7 +164,8 @@ def compute_summary(events):
 
         out[name] = {
             'N_pt':     N_pt,      # fine grid (n_ev, n_rap, N_PT)
-            'sum_pt':   sum_pt,    # fine grid
+            # 'sum_pt':   sum_pt,    # fine grid
+            'avg_pt':   avg_pt,    # special cut
             'Qn_real':  Qn_real,   # coarse grid (n_ev, n_rap, N_PT_FLOW, n_ord)
             'Qn_imag':  Qn_imag,
             'Q2n_real': Q2n_real,
@@ -162,7 +173,7 @@ def compute_summary(events):
             'N_pt_flow': N_pt_flow,
             # 'pQn_real': pQn_real,
             # 'pQn_imag': pQn_imag,
-            'N_eta':    N_eta,    # shape (n_ev, N_ETA) 
+            # 'N_eta':    N_eta,    # shape (n_ev, N_ETA) 
         }
     return out
 
@@ -187,7 +198,7 @@ def save_hdf5(filename, summary, hydro_event_id=0):
     /particles/<species_name>/
         attrs: pdg — int or int32 array of PDG ids
         N_pt     : int32   (n_events, n_rap_cuts, n_pt)
-        sum_pt   : float32 (n_events, n_rap_cuts, n_pt)
+        avg_pt   : float32 (n_events, n_rap_cuts)
         Qn_real  : float32 (n_events, n_rap_cuts, n_pt, n_ord)
         Qn_imag  : float32 (n_events, n_rap_cuts, n_pt, n_ord)
         Q2n_real : float32 (n_events, n_rap_cuts, n_pt, n_ord)
