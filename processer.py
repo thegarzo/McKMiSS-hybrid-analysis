@@ -530,10 +530,10 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                 # shape (n_samp, n_rap, n_pt) -> select irap immediately
                 if fname == "empty_event":
                     N_pt   = 0*f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
-                    sum_pt = 0*f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                    avg_pt_t = 0*f[f'particles/{species}/avg_pt'][:, irap]  # (n_samp, n_pt)
                 else: 
                     N_pt   = f[f'particles/{species}/N_pt']  [:, irap, :]  # (n_samp, n_pt)
-                    sum_pt = f[f'particles/{species}/sum_pt'][:, irap, :]  # (n_samp, n_pt)
+                    avg_pt_t = f[f'particles/{species}/avg_pt'][:, irap]  # (n_samp, n_pt)
                 
 
                 n_samp = N_pt.shape[0]
@@ -551,10 +551,10 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
                     N_sel   = N_pt[local_mask, :]   # (n_sel, n_pt)
                     N_tot   = N_sel.sum(axis=1)   # (n_sel, n_pt)
-                    spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
+                    # spt_sel = sum_pt[local_mask, :]   # (n_sel, n_pt)
                     
-                    N_sel_tot= N_sel[:9].sum(axis=1)
-                    spt_sel_tot= spt_sel[:9].sum(axis=1)
+                    # N_sel_tot= N_sel[:9].sum(axis=1)
+                    # spt_sel_tot= spt_sel[:9].sum(axis=1)
 
     
                     # print
@@ -566,7 +566,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     acc[cent]['N_pt'].append(N_sel)
                     acc[cent]['N_tot'].append(N_tot)
                     
-                    avg_pt_t = np.where(N_sel_tot > 0, spt_sel_tot / N_sel_tot, 0)
+                    
                     acc[cent]['avg_pt'].append(avg_pt_t)
                     # if N_tot>0:
                     #     acc['Ref'][cent]['avg_pt'].append(spt_sel_tot/float(N_tot))
@@ -1069,10 +1069,10 @@ def compute_flow_cumulants(masks, records,
                         # v2_4_err[io] = _bootstrap_v2(c2_4_vec, kind='4',
                         #                             four_vec=four_vec,
                         #                             c2_mean=c2_4_mean)
-        print(v2_2, v2_2_err)
-        print(v2_2sub, v2_2sub_err) 
-        print(c4_tot, c4_tot_err)
-        print(v2_4, v2_4_err)
+        # print(v2_2, v2_2_err)
+        # print(v2_2sub, v2_2sub_err) 
+        # print(c4_tot, c4_tot_err)
+        # print(v2_4, v2_4_err)
         d2,d2_err={},{}
         d2_sub,d2_sub_err={},{}
 
