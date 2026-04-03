@@ -19,7 +19,7 @@ def find_ersatz(filenames, ifile):
     while found ==False:
         iers+=1 
         if filenames[ifile+iers]!="empty_event":
-            ersatz=filenames[ifile-iers]
+            ersatz=filenames[ifile+iers]
             found =True 
     return ersatz
             
@@ -569,7 +569,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
                     acc[cent]['N_tot'].append(N_tot)
                     
                     
-                    acc[cent]['avg_pt'].append(avg_pt_t)
+                    acc[cent]['avg_pt'].append(avg_pt_t[local_mask])
                     # if N_tot>0:
                     #     acc['Ref'][cent]['avg_pt'].append(spt_sel_tot/float(N_tot))
                     # else:
@@ -636,7 +636,7 @@ def compute_spectra(records,masks, irap, species='pi_plus'):
 
         # spectrum: (1/2pi pT) dN/deta dpT averaged over events
         dN_detadpt_ev =N_pt_ev/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
-        dN_detadpt_ev_err =N_pt_ev/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
+        dN_detadpt_ev_err = N_pt_ev_err/  (2*np.pi * pt_cents[np.newaxis,:] * dpt[np.newaxis,:] * deta)
         dN_detadpt  = np.sum(weights[:,np.newaxis]*dN_detadpt_ev,axis=0) 
         dN_err    = np.sqrt( np.sum(np.power(weights[:,np.newaxis]*dN_detadpt_ev_err,2.),axis=0) ) 
 
@@ -762,7 +762,7 @@ def compute_flow_cumulants(masks, records,
         else: 
             fname_ersatz=fname   
 
-            with h5py.File(fname_ersatz, 'r') as f:
+        with h5py.File(fname_ersatz, 'r') as f:
                 rap_cuts = f['metadata'].attrs['rap_cuts']
                 # print("rap_cuts in FILE:")
                 # for i, cut in enumerate(rap_cuts):
