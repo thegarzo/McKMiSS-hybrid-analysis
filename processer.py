@@ -23,10 +23,12 @@ def find_ersatz(filenames, ifile):
             found =True 
     return ersatz
             
-def ratio_error(A,dA,B,dB):
-    R=A/B
-    err2 = np.power(dA/B,2.0) +  np.power(R*dB/B,2.0) 
-    return R, np.sqrt(err2)
+def ratio_error(A, dA, B, dB):                                                
+      if B == 0:                                                                                                                                                                                                
+          return 0.0, 0.0                                                                                                                                                                                       
+      R    = A / B                                                                                                                                                                                              
+      err2 = np.power(dA/B, 2.0) + np.power(R*dB/B, 2.0)                                                                                                                                                        
+      return R, np.sqrt(err2)        
 
 def inspect_hdf5(filename):
     """Print the full structure of an HDF5 file."""
@@ -709,6 +711,7 @@ def compute_flow_cumulants(masks, records,
     labels   = list(masks.keys())
     n_events = {lab: 0 for lab in labels}
     pt_cents = orders = None
+    pt_bins = None
     offset   = 0
 
     # per-event accumulators — store raw per-event quantities,
@@ -771,7 +774,9 @@ def compute_flow_cumulants(masks, records,
                 # print(f"Sub-event B  mean N = {NB.mean():.2f}  max = {NB.max():.0f}")
 
                 if pt_cents is None:
-                    pt_cents  = f['metadata'].attrs['pt_cents_flow']
+                    pt_bins = f['metadata'].attrs['pt_bins_flow']
+                    pt_cents  = 0.5*(pt_bins[1:]+pt_bins[:-1])
+                    print(f['metadata'].attrs['pt_bins_flow'])
                     orders    = list(f['metadata'].attrs['orders'])
                     n_pt      = len(pt_cents)
                     n_ord     = len(orders)
@@ -958,9 +963,9 @@ def compute_flow_cumulants(masks, records,
                                 num    = (Qb[ok_b] * np.conj(QB[ok_b])).real
                                 den    = Mb[ok_b] * MsubB[ok_b]
                                 
-                                d2prime_vec = aux.safe_divide( num,den)
-                                d2_mean[particle][ib,io]=np.mean(d2prime_vec,axis=0)
-                                d2_var2[particle][ib,io]=np.mean(np.power(d2prime_vec-d2_mean[particle][ib,io],2.))
+                                d2prime_vec = aux.safe_divide(num,den)
+                                d2_mean[particle][ib,io]=np.mean(d2prime_vec,axis=0) if len(d2prime_vec) > 0 else 0.0 
+                                d2_var2[particle][ib,io]=np.mean(np.power(d2prime_vec-d2_mean[particle][ib,io],2.)) if len(d2prime_vec) > 0 else 0.0 
         
                                 # vn2_pt_sub[particle][ib, io], vn2_pt_sub_err[particle][ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[io]) 
 
@@ -977,8 +982,8 @@ def compute_flow_cumulants(masks, records,
 
                                 d2prime_sub_vec = aux.safe_divide( num,den)
 
-                                d2_sub_mean[particle][ib,io]=np.mean(d2prime_sub_vec,axis=0)
-                                d2_sub_var2[particle][ib,io]=np.mean(np.power(d2prime_sub_vec-d2_sub_mean[particle][ib,io],2.))
+                                d2_sub_mean[particle][ib,io]=np.mean(d2prime_sub_vec,axis=0) if len(d2prime_sub_vec) > 0 else 0.0 
+                                d2_sub_var2[particle][ib,io]=np.mean(np.power(d2prime_sub_vec-d2_sub_mean[particle][ib,io],2.)) if len(d2prime_sub_vec) > 0 else 0.0 
 
                     # print(c2_mean,Mk)
                     acc['Gen'][lab]['Mk'].append(Mk)
@@ -992,6 +997,7 @@ def compute_flow_cumulants(masks, records,
                     acc['Ref'][lab]['c2_4_var2'].append(c2_var2)
 
                     for species in flow_species.keys():
+                        # print(d2_mean[species])
                         acc[species][lab]['d2'].append(d2_mean[species])
                         acc[species][lab]['d2_var2'].append(d2_var2[species])
                         acc[species][lab]['d2_sub'].append(d2_sub_mean[species])
@@ -1025,11 +1031,15 @@ def compute_flow_cumulants(masks, records,
         
         c22, c22_err = cluster_error_obs(c2a,c2a_var2, Mka, len(Mka),n_ev)
         # This is the "naive way to compute this, we can also bootstrap the c22"
-        v2_2, v2_2_err = np.sqrt(c22), c22_err/(2*np.sqrt(c22) ) 
+        v2_2 = np.where(c22 > 0, np.sqrt(np.maximum(c22, 0.0)), 0.0)  
+        v2_2_err = np.where(c22 > 0, c22_err / (2.0 * np.sqrt(np.maximum(c22, 1e-20))), 0.0)  
+        
 
         c22_sub, c22_sub_err = cluster_error_obs(c2a_sub,c2a_sub_var2, Mka, len(Mka),n_ev)
-        v2_2sub, v2_2sub_err = np.sqrt(c22_sub), c22_sub_err/(2*np.sqrt(c22_sub) ) 
-
+        # v2_2sub, v2_2sub_err = np.sqrt(c22_sub), c22_sub_err/(2*np.sqrt(c22_sub) ) 
+        v2_2sub = np.where(c22_sub > 0, np.sqrt(np.maximum(c22_sub, 0.0)), 0.0)  
+        v2_2sub_err = np.where(c22_sub > 0, c22_sub_err / (2.0 * np.sqrt(np.maximum(c22_sub, 1e-20))), 0.0)  
+        
         c4_mean, c4_err = cluster_error_obs(c4a,c4a_var2, Mka, len(Mka),n_ev)
         c24_mean, c24_err = cluster_error_obs(c24a,c24a_var2, Mka, len(Mka),n_ev)
 
@@ -1056,11 +1066,11 @@ def compute_flow_cumulants(masks, records,
 
             # n2_pt_sub[particle][ib, io], vn2_pt_sub_err[particle][ib, io]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[io]) 
             vn2_pt[particle], vn2_pt_err[particle] = np.zeros( d2.shape), np.zeros( d2.shape)
-            vn2_pt_sub[particle], vn2_pt_sub_err[particle] = np.zeros( d2.shape), np.zeros( d2.shape)
+            vn2_pt_sub[particle], vn2_pt_sub_err[particle] = np.zeros( d2_sub.shape), np.zeros( d2_sub.shape)
             for io in np.arange(3):
                 for ib in range(n_pt):                                  
                     vn2_pt[particle][ib, io], vn2_pt_err[particle][ib, io] = ratio_error(d2[ib, io], d2_err[ib, io] , v2_2[io],v2_2_err[io]) 
-                    vn2_pt_sub[particle][ib, io], vn2_pt_sub_err[particle][ib, io] = ratio_error(d2[ib, io], d2_err[ib, io] , v2_2sub[io],v2_2sub_err[io]) 
+                    vn2_pt_sub[particle][ib, io], vn2_pt_sub_err[particle][ib, io] = ratio_error(d2_sub[ib, io], d2_sub_err[ib, io] , v2_2sub[io],v2_2sub_err[io]) 
             # vn2_pt_sub[particle], vn2_pt_sub_err[particle]  = ratio_error(d2prime_avg,d2prime_err, v2_2sub[io],v2_2sub_err[i
 
  #c4_vec_mean #- 2.0 * c2_4_mean**2
@@ -1073,14 +1083,14 @@ def compute_flow_cumulants(masks, records,
         # print(v2_2sub, v2_2sub_err) 
         # print(c4_tot, c4_tot_err)
         # print(v2_4, v2_4_err)
-        d2,d2_err={},{}
-        d2_sub,d2_sub_err={},{}
+        # d2,d2_err={},{}
+        # d2_sub,d2_sub_err={},{}
 
-        for particle in flow_species.keys():
-            d2=np.array(acc[species][lab]['d2'])
-            d2_var2=np.array(acc[species][lab]['d2_var2'])
-            d2_sub=np.array(acc[species][lab]['d2_sub'])
-            d2_sub_var2=np.array(acc[species][lab]['d2_var2'])
+        # for particle in flow_species.keys():
+        #     d2=np.array(acc[species][lab]['d2'])
+        #     d2_var2=np.array(acc[species][lab]['d2_var2'])
+        #     d2_sub=np.array(acc[species][lab]['d2_sub'])
+        #     d2_sub_var2=np.array(acc[species][lab]['d2_var2'])
 
 
         # print(c2_arra.shape)
@@ -1089,6 +1099,7 @@ def compute_flow_cumulants(masks, records,
         results[lab] = {
             'orders':      orders,
             'pt_cents':    pt_cents,
+            'pt_bins':     pt_bins,
             'vn_2':        v2_2,        # was 'v2_2'
             'vn_2_err':    v2_2_err,    # was 'v2_2_err'
             'vn_2sub':     v2_2sub,     # was 'v2_2sub'

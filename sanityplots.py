@@ -19,7 +19,7 @@ def plot_events_selected(infos, plot_path, records):
     fig, ax = plt.subplots()
     # ax.set_xscale('log')
     ax.set_yscale('log')
-    ax.hist(records['dNch_deta'], bins=140, color='steelblue', alpha=0.7)
+    ax.hist(records['dNch_deta'], bins=100, color='steelblue', alpha=0.7)
 
     for label, d in infos.items():
         # print(label)

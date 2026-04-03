@@ -22,13 +22,14 @@ AVG_PT_BINS={
 
 
 PT_BINS  = np.array([0.1,0.5,0.75,1.0,1.4,1.8,2.2,2.4,2.6,3.0,4.0,5.0])
+# PT_BINS  = np.array([0.1,0.2,0.3,0.4,0.5,0.75,1.0,1.4,1.8,2.2,2.4,2.6,3.0,4.0,5.0])
 N_PT     = len(PT_BINS)-1
 PT_MIN   = PT_BINS[0]                           # lower edge [GeV]
 PT_MAX   = PT_BINS[-1]
 # np.logspace(np.log10(PT_MIN),
 #                        np.log10(PT_MAX),
 #                        N_PT + 1)             # shape (61,) — 60 bin edges
-PT_CENTS = (PT_BINS[:-1] + PT_BINS[1:])/2  # geometric centre of each bin
+PT_CENTS = (PT_BINS[:-1] + PT_BINS[1:])/2.0  # geometric centre of each bin
 
 # ── coarse pT grid: for flow vn(pT) ───────────────────────────────────
 # Fewer bins means more particles per bin, more stable Q-vectors.
@@ -40,7 +41,7 @@ PT_MAX_FLOW  = PT_BINS_FLOW[-1]
 N_PT_FLOW    = len(PT_BINS_FLOW)-1
 # PT_BINS_FLOW = np.logspace(np.log10(PT_MIN_FLOW), np.log10(PT_MAX_FLOW),
 #                            N_PT_FLOW + 1)
-PT_CENTS_FLOW = np.sqrt(PT_BINS_FLOW[:-1] + PT_BINS_FLOW[1:])/2
+PT_CENTS_FLOW = (PT_BINS_FLOW[:-1] + PT_BINS_FLOW[1:])/2.0
 
 ALICE_TRACK_SEL = [PT_MIN,50.]
 
