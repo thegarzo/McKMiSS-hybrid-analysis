@@ -165,8 +165,8 @@ def plot_avg_pt_cent_CHADs(spectra, plot_path):
     ax.legend(fontsize=7)
 
     plt.tight_layout()
-    plt.savefig(plot_path+'/mean_pt_cent.pdf')
-    print("Saved "+plot_path+"/mean_pt_cent.pdf")
+    plt.savefig(plot_path+'/mean_pt_cent_CHADs.pdf')
+    print("Saved "+plot_path+"/mean_pt_cent_CHADs.pdf")
 
 
 

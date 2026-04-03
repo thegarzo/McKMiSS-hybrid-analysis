@@ -831,17 +831,17 @@ def compute_flow_cumulants(masks, records,
 
                     else:
                         species=flow_species[particle]
-                        Qn_mid_pt [particle]= 1j* prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_mid, :, :]
-                        Qn_mid_pt [particle]+= prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_mid, :, :]
-                        M_mid_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_mid, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_mid, :, ]
+                        Qn_mid_pt [particle]= 1j*prefactor* (f[f'particles/{species[0]}/Qn_imag'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_mid, :, :])
+                        Qn_mid_pt [particle]+= prefactor*(f[f'particles/{species[0]}/Qn_real'][:, irap_mid, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_mid, :, :])
+                        M_mid_pt    [particle]= prefactor*(f[f'particles/{species[0]}/N_pt_flow']   [:, irap_mid, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_mid, :, ])
 
-                        Qn_A_pt [particle]=  1j* prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subA, :, :]
-                        Qn_A_pt [particle]+= prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subA, :, :]
-                        M_A_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subA, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subA, :, ]
+                        Qn_A_pt [particle]=  1j* prefactor*(f[f'particles/{species[0]}/Qn_imag'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subA, :, :])
+                        Qn_A_pt [particle]+= prefactor*(f[f'particles/{species[0]}/Qn_real'][:, irap_subA, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subA, :, :])
+                        M_A_pt    [particle]= prefactor*(f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subA, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subA, :, ])
 
-                        Qn_B_pt [particle] = 1j* prefactor*f[f'particles/{species[0]}/Qn_imag'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subB, :, :]
-                        Qn_B_pt [particle] += prefactor*f[f'particles/{species[0]}/Qn_real'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subB, :, :]
-                        M_B_pt    [particle]= prefactor*f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subB, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subB, :, ]
+                        Qn_B_pt [particle] = 1j*prefactor* (f[f'particles/{species[0]}/Qn_imag'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_imag'][:, irap_subB, :, :])
+                        Qn_B_pt [particle] += prefactor*(f[f'particles/{species[0]}/Qn_real'][:, irap_subB, :, :] + f[f'particles/{species[1]}/Qn_real'][:, irap_subB, :, :])
+                        M_B_pt    [particle]= prefactor*(f[f'particles/{species[0]}/N_pt_flow']   [:, irap_subB, :, ] + f[f'particles/{species[1]}/N_pt_flow']   [:, irap_subB, :, ])
 
                         
                 n_samp     = M_mid.shape[0]
