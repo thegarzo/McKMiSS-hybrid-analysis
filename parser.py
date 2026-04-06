@@ -3,6 +3,7 @@ import os
 import re
 from typing import Dict
 
+PHYSICS_EMPTY_PHRASE = "No freeze-out fluid cell, exit now"
 
 class Parser:
     """
@@ -17,10 +18,27 @@ class Parser:
 
     def __init__(self, base_path: str):
         self.base_path = base_path
+        self.logs_path = os.path.join(os.path.dirname(base_path), "logs")
+        # print(self.logs_path/)
         self.events: Dict[int, Dict[str, int]] = {}
         self.events: Dict[int, Dict[str, int]] = {}
         self.scan()
-
+        
+    def _is_physics_empty(self, cluster_id: int, job_id: int) -> bool:
+        """ 
+        Return True if the .out log for this job contains the freeze-out phrase,
+        indicating the system was too cold to produce particles (expected physics).
+        Returns False if the log is missing or the phrase is absent.
+        """ 
+        log_file = os.path.join(self.logs_path,f"run_{cluster_id}_{job_id}.out")
+        if not os.path.isfile(log_file):
+            return False 
+        try:
+            with open(log_file, "r", errors="replace") as f:
+                return PHYSICS_EMPTY_PHRASE in f.read()
+        except OSError:
+            return False
+         
     def scan(self):
         """
         Scan the base directory and build the event dictionary.
@@ -29,6 +47,7 @@ class Parser:
         event_id = 0
 
         skipped =0
+        nonsense =0
         for entry in os.scandir(self.base_path):
             if not entry.is_dir():
                 continue
@@ -47,19 +66,22 @@ class Parser:
             h5_path =self.find_h5_file(entry.path+"/MUSIC")
 
             if h5_path is None:
-                self.events[event_id] = {
-                    "campaignID": campaign_id,
-                    "clusterID": cluster_id,
-                    "jobID": job_id,
-                    "UID": unique_id,
-                    "ran": is_run_complete,
-                    "folder_path": entry.path,
-                    "h5_path": "empty_event"
-                }
-                skipped += 1
-                event_id += 1
+                if self._is_physics_empty(cluster_id, job_id):
+                    self.events[event_id] = {
+                        "campaignID": campaign_id,
+                        "clusterID": cluster_id,
+                        "jobID": job_id,
+                        "UID": unique_id,
+                        "ran": is_run_complete,
+                        "folder_path": entry.path,
+                        "h5_path": "empty_event"
+                    }
+                    skipped += 1
+                    event_id += 1
+                else: 
+                    print(entry.path)
+                    nonsense+=1
             else:
-                
                 self.events[event_id] = {
                     "campaignID": campaign_id,
                     "clusterID": cluster_id,
@@ -70,6 +92,8 @@ class Parser:
                     "h5_path": h5_path
                 }
                 event_id += 1
+        
+        print("Failed events are  n = " +str(nonsense)+  ' files')
         print("Empty events n = " +str(skipped)+  ' files')
         print("Catalogued n = " +str(event_id)+  ' files')
         print("Empty events are n = " +f'{100*float(skipped)/float(event_id):.2f}' +  ' percent of files')
